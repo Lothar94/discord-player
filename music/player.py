@@ -8,6 +8,7 @@ the next track.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import logging
 from typing import Callable, Optional
 
@@ -21,6 +22,13 @@ from .track import TrackInfo
 logger = logging.getLogger(__name__)
 
 
+@dataclasses.dataclass(frozen=True)
+class AutoDisconnectConfig:
+    inactivity_timeout: int = 300
+    empty_channel_grace: int = 60
+    disconnect_when_alone: bool = True
+
+
 class GuildPlayer:
     """Coordinates queue + voice client for a single guild."""
 
@@ -29,23 +37,22 @@ class GuildPlayer:
         guild: discord.Guild,
         source_factory: YTDLSourceFactory,
         default_volume: float,
+        loop: asyncio.AbstractEventLoop,
         notify_channel: Optional[discord.abc.Messageable] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        inactivity_timeout: int = 300,
-        empty_channel_grace: int = 60,
-        disconnect_when_alone: bool = True,
+        auto_disconnect: Optional[AutoDisconnectConfig] = None,
         on_disconnect: Optional[Callable[[int], None]] = None,
     ) -> None:
+        cfg = auto_disconnect if auto_disconnect is not None else AutoDisconnectConfig()
         self._guild = guild
         self._source_factory = source_factory
         self._volume = default_volume
         self._notify_channel = notify_channel
-        self._loop = loop or asyncio.get_event_loop()
+        self._loop = loop
         self._queue = MusicQueue()
         self._lock = asyncio.Lock()
-        self._inactivity_timeout = inactivity_timeout
-        self._empty_channel_grace = empty_channel_grace
-        self._disconnect_when_alone = disconnect_when_alone
+        self._inactivity_timeout = cfg.inactivity_timeout
+        self._empty_channel_grace = cfg.empty_channel_grace
+        self._disconnect_when_alone = cfg.disconnect_when_alone
         self._on_disconnect = on_disconnect
         self._idle_task: Optional[asyncio.Task] = None
         self._empty_channel_task: Optional[asyncio.Task] = None
@@ -82,7 +89,7 @@ class GuildPlayer:
         voice = self._require_voice_client()
         if voice.is_playing():
             voice.pause()
-            self._start_idle_timer()
+            self._restart_idle_timer()
 
     async def resume(self) -> None:
         voice = self._require_voice_client()
@@ -111,6 +118,8 @@ class GuildPlayer:
             if voice.is_playing() or voice.is_paused():
                 voice.stop()
             await voice.disconnect(force=False)
+        if self._on_disconnect is not None:
+            self._on_disconnect(self._guild.id)
 
     def start_empty_channel_timer(self) -> None:
         if not self._disconnect_when_alone:
@@ -118,7 +127,7 @@ class GuildPlayer:
         if self._empty_channel_task is not None and not self._empty_channel_task.done():
             return
         self._empty_channel_task = asyncio.ensure_future(
-            self._run_empty_channel_timer(), loop=self._loop
+            self._run_empty_channel_timer()
         )
 
     def cancel_empty_channel_timer(self) -> None:
@@ -126,12 +135,12 @@ class GuildPlayer:
             self._empty_channel_task.cancel()
             self._empty_channel_task = None
 
-    def _start_idle_timer(self) -> None:
+    def _restart_idle_timer(self) -> None:
         self._cancel_idle_timer()
         if self._inactivity_timeout <= 0:
             return
         self._idle_task = asyncio.ensure_future(
-            self._run_idle_timer(), loop=self._loop
+            self._run_idle_timer()
         )
 
     def _cancel_idle_timer(self) -> None:
@@ -143,15 +152,11 @@ class GuildPlayer:
         await asyncio.sleep(self._inactivity_timeout)
         await self._notify(f"Disconnected after {self._inactivity_timeout}s of inactivity.")
         await self.stop_and_disconnect()
-        if self._on_disconnect is not None:
-            self._on_disconnect(self._guild.id)
 
     async def _run_empty_channel_timer(self) -> None:
         await asyncio.sleep(self._empty_channel_grace)
         await self._notify("Disconnected because the channel was empty.")
         await self.stop_and_disconnect()
-        if self._on_disconnect is not None:
-            self._on_disconnect(self._guild.id)
 
     def _require_voice_client(self) -> discord.VoiceClient:
         voice = self.voice_client
@@ -166,7 +171,7 @@ class GuildPlayer:
     async def _play_next(self) -> None:
         next_track = self._queue.advance()
         if next_track is None:
-            self._start_idle_timer()
+            self._restart_idle_timer()
             return
 
         self._cancel_idle_timer()

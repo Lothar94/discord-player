@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from music.player import GuildPlayer
+from music.player import AutoDisconnectConfig, GuildPlayer
 from music.track import TrackInfo
 
 
@@ -41,9 +41,11 @@ def _make_player(
         source_factory=source_factory,
         default_volume=0.5,
         loop=loop or asyncio.get_event_loop(),
-        inactivity_timeout=inactivity_timeout,
-        empty_channel_grace=empty_channel_grace,
-        disconnect_when_alone=disconnect_when_alone,
+        auto_disconnect=AutoDisconnectConfig(
+            inactivity_timeout=inactivity_timeout,
+            empty_channel_grace=empty_channel_grace,
+            disconnect_when_alone=disconnect_when_alone,
+        ),
         on_disconnect=on_disconnect,
     )
 
@@ -98,7 +100,7 @@ async def test_on_disconnect_callback_called_after_timeout() -> None:
     player = _make_player(inactivity_timeout=1, on_disconnect=callback)
     player._guild.voice_client = None
 
-    player._start_idle_timer()
+    player._restart_idle_timer()
     assert player._idle_task is not None
 
     await asyncio.sleep(1.1)

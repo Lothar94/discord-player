@@ -82,3 +82,12 @@ def test_invalid_inactivity_timeout_raises(monkeypatch: pytest.MonkeyPatch) -> N
 
     with pytest.raises(MissingConfigError):
         load_config()
+
+
+def test_inactivity_timeout_negative_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DISCORD_TOKEN", "token")
+    monkeypatch.setenv("INACTIVITY_TIMEOUT_SECONDS", "-1")
+    monkeypatch.setattr("config.load_dotenv", lambda *args, **kwargs: False)
+
+    with pytest.raises(MissingConfigError):
+        load_config()

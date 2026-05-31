@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Dict, Optional
 
@@ -16,7 +17,7 @@ from music.errors import (
     TrackNotFoundError,
     UserNotInVoiceError,
 )
-from music.player import GuildPlayer
+from music.player import AutoDisconnectConfig, GuildPlayer
 from music.queue import LoopMode
 from music.sources import YTDLSourceFactory
 from music.track import TrackInfo
@@ -33,15 +34,11 @@ class Music(commands.Cog):
         self,
         bot: commands.Bot,
         default_volume: float,
-        inactivity_timeout: int,
-        disconnect_when_alone: bool,
-        empty_channel_grace: int,
+        auto_disconnect: AutoDisconnectConfig,
     ) -> None:
         self._bot = bot
         self._default_volume = default_volume
-        self._inactivity_timeout = inactivity_timeout
-        self._disconnect_when_alone = disconnect_when_alone
-        self._empty_channel_grace = empty_channel_grace
+        self._auto_disconnect = auto_disconnect
         self._source_factory = YTDLSourceFactory()
         self._players: Dict[int, GuildPlayer] = {}
 
@@ -275,10 +272,8 @@ class Music(commands.Cog):
                 guild=guild,
                 source_factory=self._source_factory,
                 default_volume=self._default_volume,
-                loop=self._bot.loop,
-                inactivity_timeout=self._inactivity_timeout,
-                empty_channel_grace=self._empty_channel_grace,
-                disconnect_when_alone=self._disconnect_when_alone,
+                loop=asyncio.get_event_loop(),
+                auto_disconnect=self._auto_disconnect,
                 on_disconnect=lambda guild_id: self._players.pop(guild_id, None),
             )
             self._players[guild.id] = player
@@ -307,7 +302,9 @@ async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Music(
         bot,
         default_volume=getattr(bot, "default_volume", 0.5),
-        inactivity_timeout=getattr(bot, "inactivity_timeout_seconds", 300),
-        disconnect_when_alone=getattr(bot, "disconnect_when_alone", True),
-        empty_channel_grace=getattr(bot, "empty_channel_grace_seconds", 60),
+        auto_disconnect=AutoDisconnectConfig(
+            inactivity_timeout=getattr(bot, "inactivity_timeout_seconds", 300),
+            disconnect_when_alone=getattr(bot, "disconnect_when_alone", True),
+            empty_channel_grace=getattr(bot, "empty_channel_grace_seconds", 60),
+        ),
     ))
