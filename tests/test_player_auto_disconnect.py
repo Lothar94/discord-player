@@ -40,7 +40,7 @@ def _make_player(
         guild=guild,
         source_factory=source_factory,
         default_volume=0.5,
-        loop=loop or asyncio.get_event_loop(),
+        loop=loop or asyncio.get_running_loop(),
         auto_disconnect=AutoDisconnectConfig(
             inactivity_timeout=inactivity_timeout,
             empty_channel_grace=empty_channel_grace,

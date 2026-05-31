@@ -272,7 +272,7 @@ class Music(commands.Cog):
                 guild=guild,
                 source_factory=self._source_factory,
                 default_volume=self._default_volume,
-                loop=asyncio.get_event_loop(),
+                loop=asyncio.get_running_loop(),
                 auto_disconnect=self._auto_disconnect,
                 on_disconnect=lambda guild_id: self._players.pop(guild_id, None),
             )
