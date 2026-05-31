@@ -1,0 +1,34 @@
+[tool.poetry]
+name = "discord-player"
+version = "0.1.0"
+description = "Discord music bot that plays YouTube audio via yt-dlp and FFmpeg."
+authors = ["Discord Player Maintainers <noreply@example.com>"]
+readme = "README.md"
+license = "MIT"
+packages = [
+    { include = "cogs" },
+    { include = "music" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+"discord.py" = "2.7.1"
+yt-dlp = "2026.3.17"
+PyNaCl = "1.6.2"
+python-dotenv = "1.2.2"
+davey = "0.1.5"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0"
+pytest-asyncio = "^1.4"
+
+[tool.poetry.scripts]
+discord-player = "bot:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"

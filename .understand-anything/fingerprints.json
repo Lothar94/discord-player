@@ -1,0 +1,1187 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "df253311f9aa8355a411a30afeed767f9777b0af",
+  "generatedAt": "2026-05-31T10:04:10.131Z",
+  "files": {
+    "cogs/music.py": {
+      "filePath": "cogs/music.py",
+      "contentHash": "2e28e069062bfa51eb70c6d4c46e9c67f497b197b36d256699f32bec15ff228b",
+      "functions": [
+        {
+          "name": "setup",
+          "params": [
+            "bot"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [
+        {
+          "name": "Music",
+          "methods": [
+            "__init__",
+            "join",
+            "play",
+            "search",
+            "show_queue",
+            "clear",
+            "skip",
+            "pause",
+            "resume",
+            "remove",
+            "move",
+            "shuffle",
+            "loop",
+            "volume",
+            "now_playing",
+            "stop",
+            "cog_command_error",
+            "_ensure_voice_connection",
+            "on_voice_state_update",
+            "_get_player",
+            "_optional_player",
+            "_require_player",
+            "_format_enqueued"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 269
+        }
+      ],
+      "imports": [
+        {
+          "source": "asyncio",
+          "specifiers": [
+            "asyncio"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Dict",
+            "Optional"
+          ]
+        },
+        {
+          "source": "discord",
+          "specifiers": [
+            "discord"
+          ]
+        },
+        {
+          "source": "discord.ext",
+          "specifiers": [
+            "commands"
+          ]
+        },
+        {
+          "source": "music.errors",
+          "specifiers": [
+            "EmptyQueueError",
+            "InvalidPositionError",
+            "MusicError",
+            "NotConnectedError",
+            "TrackNotFoundError",
+            "UserNotInVoiceError"
+          ]
+        },
+        {
+          "source": "music.player",
+          "specifiers": [
+            "AutoDisconnectConfig",
+            "GuildPlayer"
+          ]
+        },
+        {
+          "source": "music.queue",
+          "specifiers": [
+            "LoopMode"
+          ]
+        },
+        {
+          "source": "music.sources",
+          "specifiers": [
+            "YTDLSourceFactory"
+          ]
+        },
+        {
+          "source": "music.track",
+          "specifiers": [
+            "TrackInfo"
+          ]
+        }
+      ],
+      "exports": [
+        "Music",
+        "setup"
+      ],
+      "totalLines": 311,
+      "hasStructuralAnalysis": true
+    },
+    "music/errors.py": {
+      "filePath": "music/errors.py",
+      "contentHash": "4764e318fed03c498521f8b62a6ed5568b8af3188a0fabe2da836bbe3b11d95f",
+      "functions": [],
+      "classes": [
+        {
+          "name": "MusicError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "TrackNotFoundError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "EmptyQueueError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "InvalidPositionError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "NotConnectedError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "UserNotInVoiceError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
+      "imports": [],
+      "exports": [
+        "MusicError",
+        "TrackNotFoundError",
+        "EmptyQueueError",
+        "InvalidPositionError",
+        "NotConnectedError",
+        "UserNotInVoiceError"
+      ],
+      "totalLines": 30,
+      "hasStructuralAnalysis": true
+    },
+    "music/player.py": {
+      "filePath": "music/player.py",
+      "contentHash": "32065b62c4e9cb12baee9b6b32828c7fddeee92c600a34e08a4a58b4b8f1a41a",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AutoDisconnectConfig",
+          "methods": [],
+          "properties": [
+            "inactivity_timeout",
+            "empty_channel_grace",
+            "disconnect_when_alone"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "GuildPlayer",
+          "methods": [
+            "__init__",
+            "queue",
+            "volume",
+            "voice_client",
+            "set_notify_channel",
+            "enqueue",
+            "skip",
+            "pause",
+            "resume",
+            "set_volume",
+            "set_loop",
+            "stop_and_disconnect",
+            "start_empty_channel_timer",
+            "cancel_empty_channel_timer",
+            "_restart_idle_timer",
+            "_cancel_idle_timer",
+            "_run_idle_timer",
+            "_run_empty_channel_timer",
+            "_require_voice_client",
+            "_is_playing_or_paused",
+            "_play_next",
+            "_on_playback_finished",
+            "_log_advance_failure",
+            "_notify_now_playing",
+            "_notify"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 189
+        }
+      ],
+      "imports": [
+        {
+          "source": "asyncio",
+          "specifiers": [
+            "asyncio"
+          ]
+        },
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "dataclasses"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Callable",
+            "Optional"
+          ]
+        },
+        {
+          "source": "discord",
+          "specifiers": [
+            "discord"
+          ]
+        },
+        {
+          "source": ".errors",
+          "specifiers": [
+            "NotConnectedError",
+            "TrackNotFoundError"
+          ]
+        },
+        {
+          "source": ".queue",
+          "specifiers": [
+            "LoopMode",
+            "MusicQueue"
+          ]
+        },
+        {
+          "source": ".sources",
+          "specifiers": [
+            "YTDLSourceFactory"
+          ]
+        },
+        {
+          "source": ".track",
+          "specifiers": [
+            "TrackInfo"
+          ]
+        }
+      ],
+      "exports": [
+        "AutoDisconnectConfig",
+        "GuildPlayer"
+      ],
+      "totalLines": 221,
+      "hasStructuralAnalysis": true
+    },
+    "music/sources.py": {
+      "filePath": "music/sources.py",
+      "contentHash": "f8f06f8de6728c47e03d3cefbc69553481ae6fd22dab946c8d339760607b2277",
+      "functions": [],
+      "classes": [
+        {
+          "name": "YTDLSourceFactory",
+          "methods": [
+            "__init__",
+            "resolve",
+            "build_audio_source"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 68
+        }
+      ],
+      "imports": [
+        {
+          "source": "asyncio",
+          "specifiers": [
+            "asyncio"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Optional"
+          ]
+        },
+        {
+          "source": "discord",
+          "specifiers": [
+            "discord"
+          ]
+        },
+        {
+          "source": "yt_dlp",
+          "specifiers": [
+            "yt_dlp"
+          ]
+        },
+        {
+          "source": ".errors",
+          "specifiers": [
+            "TrackNotFoundError"
+          ]
+        },
+        {
+          "source": ".track",
+          "specifiers": [
+            "TrackInfo"
+          ]
+        }
+      ],
+      "exports": [
+        "YTDLSourceFactory"
+      ],
+      "totalLines": 105,
+      "hasStructuralAnalysis": true
+    },
+    "music/queue.py": {
+      "filePath": "music/queue.py",
+      "contentHash": "31fdcb2bfce709e081064aa0a8892663333e35e24c1472e051a02c51ca8c5352",
+      "functions": [],
+      "classes": [
+        {
+          "name": "LoopMode",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "MusicQueue",
+          "methods": [
+            "__init__",
+            "current",
+            "loop_mode",
+            "upcoming",
+            "is_empty",
+            "__len__",
+            "enqueue",
+            "set_loop_mode",
+            "advance",
+            "clear",
+            "shuffle",
+            "remove_at",
+            "move",
+            "reset",
+            "_validate_index"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 86
+        }
+      ],
+      "imports": [
+        {
+          "source": "random",
+          "specifiers": [
+            "random"
+          ]
+        },
+        {
+          "source": "collections",
+          "specifiers": [
+            "deque"
+          ]
+        },
+        {
+          "source": "enum",
+          "specifiers": [
+            "Enum"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Deque",
+            "List",
+            "Optional"
+          ]
+        },
+        {
+          "source": ".errors",
+          "specifiers": [
+            "EmptyQueueError",
+            "InvalidPositionError"
+          ]
+        },
+        {
+          "source": ".track",
+          "specifiers": [
+            "TrackInfo"
+          ]
+        }
+      ],
+      "exports": [
+        "LoopMode",
+        "MusicQueue"
+      ],
+      "totalLines": 106,
+      "hasStructuralAnalysis": true
+    },
+    "music/track.py": {
+      "filePath": "music/track.py",
+      "contentHash": "f354cac190484c4a17294883612742bdacf88e582da9a5a30ce183c95f63d766",
+      "functions": [],
+      "classes": [
+        {
+          "name": "TrackInfo",
+          "methods": [
+            "duration_label"
+          ],
+          "properties": [
+            "title",
+            "webpage_url",
+            "duration_seconds",
+            "uploader",
+            "requester_id",
+            "requester_name",
+            "query"
+          ],
+          "exported": true,
+          "lineCount": 24
+        }
+      ],
+      "imports": [
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "dataclass"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Optional"
+          ]
+        }
+      ],
+      "exports": [
+        "TrackInfo"
+      ],
+      "totalLines": 38,
+      "hasStructuralAnalysis": true
+    },
+    "tests/test_player_auto_disconnect.py": {
+      "filePath": "tests/test_player_auto_disconnect.py",
+      "contentHash": "b33989bbae6708e867693eaf857ee690b53358499eb24d2161683d4e8d1e08c2",
+      "functions": [
+        {
+          "name": "_make_track",
+          "params": [
+            "title"
+          ],
+          "returnType": "TrackInfo",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "_make_player",
+          "params": [
+            "inactivity_timeout",
+            "empty_channel_grace",
+            "disconnect_when_alone",
+            "on_disconnect",
+            "loop"
+          ],
+          "returnType": "GuildPlayer",
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "test_idle_timer_starts_when_queue_exhausted",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "test_idle_timer_cancelled_on_enqueue",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "test_idle_timer_cancelled_on_stop",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "test_on_disconnect_callback_called_after_timeout",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "test_empty_channel_timer_starts_when_called",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "test_empty_channel_timer_cancelled_on_repopulate",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "test_disabled_inactivity_does_not_schedule_timer",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_disabled_alone_does_not_schedule_timer",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "asyncio",
+          "specifiers": [
+            "asyncio"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Optional"
+          ]
+        },
+        {
+          "source": "unittest.mock",
+          "specifiers": [
+            "AsyncMock",
+            "MagicMock",
+            "patch"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "music.player",
+          "specifiers": [
+            "AutoDisconnectConfig",
+            "GuildPlayer"
+          ]
+        },
+        {
+          "source": "music.track",
+          "specifiers": [
+            "TrackInfo"
+          ]
+        }
+      ],
+      "exports": [
+        "_make_track",
+        "_make_player",
+        "test_idle_timer_starts_when_queue_exhausted",
+        "test_idle_timer_cancelled_on_enqueue",
+        "test_idle_timer_cancelled_on_stop",
+        "test_on_disconnect_callback_called_after_timeout",
+        "test_empty_channel_timer_starts_when_called",
+        "test_empty_channel_timer_cancelled_on_repopulate",
+        "test_disabled_inactivity_does_not_schedule_timer",
+        "test_disabled_alone_does_not_schedule_timer"
+      ],
+      "totalLines": 149,
+      "hasStructuralAnalysis": true
+    },
+    "tests/test_queue.py": {
+      "filePath": "tests/test_queue.py",
+      "contentHash": "ba63224e48ea959a04b7cbfe2b1d777e75ea3b2e619c553a8e91e7e929e7e454",
+      "functions": [
+        {
+          "name": "_make_track",
+          "params": [
+            "title"
+          ],
+          "returnType": "TrackInfo",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "test_new_queue_is_empty",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "test_enqueue_and_advance_consumes_fifo_order",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "test_loop_track_replays_current",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "test_loop_queue_rotates_tracks",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "test_remove_at_position_uses_one_based_index",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "test_remove_at_invalid_position_raises",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "test_remove_on_empty_queue_raises",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "test_move_reorders_tracks",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "test_shuffle_preserves_track_set",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "test_shuffle_empty_raises",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "test_clear_removes_upcoming_but_not_current",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "test_reset_clears_everything",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 11
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "music.errors",
+          "specifiers": [
+            "EmptyQueueError",
+            "InvalidPositionError"
+          ]
+        },
+        {
+          "source": "music.queue",
+          "specifiers": [
+            "LoopMode",
+            "MusicQueue"
+          ]
+        },
+        {
+          "source": "music.track",
+          "specifiers": [
+            "TrackInfo"
+          ]
+        }
+      ],
+      "exports": [
+        "_make_track",
+        "test_new_queue_is_empty",
+        "test_enqueue_and_advance_consumes_fifo_order",
+        "test_loop_track_replays_current",
+        "test_loop_queue_rotates_tracks",
+        "test_remove_at_position_uses_one_based_index",
+        "test_remove_at_invalid_position_raises",
+        "test_remove_on_empty_queue_raises",
+        "test_move_reorders_tracks",
+        "test_shuffle_preserves_track_set",
+        "test_shuffle_empty_raises",
+        "test_clear_removes_upcoming_but_not_current",
+        "test_reset_clears_everything"
+      ],
+      "totalLines": 144,
+      "hasStructuralAnalysis": true
+    },
+    "bot.py": {
+      "filePath": "bot.py",
+      "contentHash": "56ddd6618670844bc6e14bf5c9c32135402bfa5fcfb5c1ef9a4ee5d8af7842ea",
+      "functions": [
+        {
+          "name": "_configure_logging",
+          "params": [
+            "level"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_build_intents",
+          "params": [],
+          "returnType": "discord.Intents",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "_create_bot",
+          "params": [
+            "config"
+          ],
+          "returnType": "commands.Bot",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "_run_bot",
+          "params": [
+            "config"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 34
+        },
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "asyncio",
+          "specifiers": [
+            "asyncio"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "signal",
+          "specifiers": [
+            "signal"
+          ]
+        },
+        {
+          "source": "discord",
+          "specifiers": [
+            "discord"
+          ]
+        },
+        {
+          "source": "discord.ext",
+          "specifiers": [
+            "commands"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "BotConfig",
+            "load_config"
+          ]
+        }
+      ],
+      "exports": [
+        "_configure_logging",
+        "_build_intents",
+        "_create_bot",
+        "_run_bot",
+        "main"
+      ],
+      "totalLines": 91,
+      "hasStructuralAnalysis": true
+    },
+    "config.py": {
+      "filePath": "config.py",
+      "contentHash": "2fecfdb57058fc304cfeb5b4f034573b4a2b8f491e0e075d682934c3252b54be",
+      "functions": [
+        {
+          "name": "load_config",
+          "params": [],
+          "returnType": "BotConfig",
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "_parse_volume",
+          "params": [
+            "raw_value"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_parse_non_negative_int",
+          "params": [
+            "raw_value",
+            "name"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_parse_bool",
+          "params": [
+            "raw_value",
+            "name"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [
+        {
+          "name": "MissingConfigError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "BotConfig",
+          "methods": [],
+          "properties": [
+            "discord_token",
+            "command_prefix",
+            "default_volume",
+            "log_level",
+            "inactivity_timeout_seconds",
+            "disconnect_when_alone",
+            "empty_channel_grace_seconds"
+          ],
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "dataclass"
+          ]
+        },
+        {
+          "source": "dotenv",
+          "specifiers": [
+            "load_dotenv"
+          ]
+        }
+      ],
+      "exports": [
+        "MissingConfigError",
+        "BotConfig",
+        "load_config",
+        "_parse_volume",
+        "_parse_non_negative_int",
+        "_parse_bool"
+      ],
+      "totalLines": 90,
+      "hasStructuralAnalysis": true
+    },
+    "tests/test_config.py": {
+      "filePath": "tests/test_config.py",
+      "contentHash": "786d9aa15bbfb14dd0174ed4928393936ff21542daf58a546fcb8f44a1914142",
+      "functions": [
+        {
+          "name": "test_missing_token_raises",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_default_values_applied",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "test_volume_out_of_range_raises",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_volume_not_a_number_raises",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_inactivity_timeout_default_is_300",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "test_empty_channel_grace_default_is_60",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "test_disconnect_when_alone_default_is_true",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "test_invalid_inactivity_timeout_raises",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "test_inactivity_timeout_negative_raises",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "MissingConfigError",
+            "load_config"
+          ]
+        }
+      ],
+      "exports": [
+        "test_missing_token_raises",
+        "test_default_values_applied",
+        "test_volume_out_of_range_raises",
+        "test_volume_not_a_number_raises",
+        "test_inactivity_timeout_default_is_300",
+        "test_empty_channel_grace_default_is_60",
+        "test_disconnect_when_alone_default_is_true",
+        "test_invalid_inactivity_timeout_raises",
+        "test_inactivity_timeout_negative_raises"
+      ],
+      "totalLines": 94,
+      "hasStructuralAnalysis": true
+    },
+    ".dockerignore": {
+      "filePath": ".dockerignore",
+      "contentHash": "ec4cad773a7943c4c58a9cfb26e1161507558b01c698515c4c760b3699eb4884",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 39,
+      "hasStructuralAnalysis": false
+    },
+    "Dockerfile": {
+      "filePath": "Dockerfile",
+      "contentHash": "57290f0f88ba513331b2c4859c68f50e5dcb1259f33af417f94900f764dc03b5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 88,
+      "hasStructuralAnalysis": true
+    },
+    ".env.example": {
+      "filePath": ".env.example",
+      "contentHash": "c38442817b9b6b73404d6bb2cab8d3eb5bdd0877024f0e81df8d2460dcf9de17",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 23,
+      "hasStructuralAnalysis": true
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "5d615f197d99620be2ad30945b1125b4d1b8e3976ea2ce2ed713f59ded017198",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 132,
+      "hasStructuralAnalysis": true
+    },
+    "pyproject.toml": {
+      "filePath": "pyproject.toml",
+      "contentHash": "eb0b7e82225202e762cdf2a58b4175a28e53bad83348b1d23131206d61021f36",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 35,
+      "hasStructuralAnalysis": true
+    },
+    "requirements.txt": {
+      "filePath": "requirements.txt",
+      "contentHash": "e492d8b57bc3e48d1bd8a5d7d32a585fa34aa11af7cc1a168ed54dc55e494482",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 6,
+      "hasStructuralAnalysis": false
+    },
+    ".understand-anything/.understandignore": {
+      "filePath": ".understand-anything/.understandignore",
+      "contentHash": "5ee08be7bed6a9090cc1203a6605179293eabb8cf3cf4d83af46de3d6257cfed",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": false
+    },
+    "cogs/__init__.py": {
+      "filePath": "cogs/__init__.py",
+      "contentHash": "c42063f3085c94b9fcc69763a3a4c1dccd039dcdba3cb825a88ad833a7e18bd3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "music/__init__.py": {
+      "filePath": "music/__init__.py",
+      "contentHash": "b8a2674e79a5f458cd8787a1a9e0f1b87e09b0f4ae39389bb2685fc11cfd3dc0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "tests/__init__.py": {
+      "filePath": "tests/__init__.py",
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": true
+    }
+  }
+}

@@ -1,0 +1,38 @@
+# Version control
+.git
+.gitignore
+
+# Local Python environments and caches
+.venv
+venv
+__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Tests are not needed in the runtime image
+tests
+
+# Tooling / editor metadata
+.claude
+.idea
+.vscode
+*.swp
+.DS_Store
+
+# Build artifacts and docs not required at runtime
+dist
+build
+*.md
+!README.md
+
+# Docker meta
+Dockerfile
+.dockerignore

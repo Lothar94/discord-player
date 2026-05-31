@@ -1,0 +1,1389 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "discord-player",
+    "languages": [
+      "python",
+      "dockerfile"
+    ],
+    "frameworks": [
+      "discord.py",
+      "pytest",
+      "Docker",
+      "yt-dlp"
+    ],
+    "description": "A Discord music bot in Python that plays YouTube audio via yt-dlp and FFmpeg, with per-guild queue isolation, loop modes, volume control, and auto-disconnect on inactivity or empty channel.",
+    "analyzedAt": "2026-05-31T10:03:25.847843Z",
+    "gitCommitHash": "df253311f9aa8355a411a30afeed767f9777b0af"
+  },
+  "nodes": [
+    {
+      "id": "file:cogs/music.py",
+      "type": "file",
+      "name": "music.py",
+      "filePath": "cogs/music.py",
+      "summary": "Discord.py Cog that exposes all music bot slash/prefix commands (play, search, skip, queue, loop, volume, etc.) and manages per-guild GuildPlayer lifecycle including auto-disconnect on empty channel.",
+      "tags": [
+        "api-handler",
+        "entry-point",
+        "event-handler",
+        "service"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:cogs/music.py:Music",
+      "type": "class",
+      "name": "Music",
+      "filePath": "cogs/music.py",
+      "lineRange": [
+        30,
+        298
+      ],
+      "summary": "Discord.py Cog class containing all music bot commands and internal helpers; maintains a per-guild player map, handles voice state events, and delegates playback work to GuildPlayer.",
+      "tags": [
+        "api-handler",
+        "event-handler",
+        "service",
+        "component"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:music/errors.py",
+      "type": "file",
+      "name": "errors.py",
+      "filePath": "music/errors.py",
+      "summary": "Defines the custom exception hierarchy for the music bot, including a base MusicError and five concrete error types for track lookup, queue, position, and voice-channel validation failures.",
+      "tags": [
+        "type-definition",
+        "validation",
+        "utility"
+      ],
+      "complexity": "simple",
+      "languageNotes": "All exceptions are thin subclasses with no additional logic \u2014 purely semantic types for structured error handling."
+    },
+    {
+      "id": "class:music/errors.py:MusicError",
+      "type": "class",
+      "name": "MusicError",
+      "filePath": "music/errors.py",
+      "lineRange": [
+        8,
+        9
+      ],
+      "summary": "Base exception class for all domain-specific music bot errors.",
+      "tags": [
+        "type-definition",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:music/errors.py:TrackNotFoundError",
+      "type": "class",
+      "name": "TrackNotFoundError",
+      "filePath": "music/errors.py",
+      "lineRange": [
+        12,
+        13
+      ],
+      "summary": "Raised when a YouTube track lookup returns no results or an unusable data payload.",
+      "tags": [
+        "type-definition",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:music/errors.py:NotConnectedError",
+      "type": "class",
+      "name": "NotConnectedError",
+      "filePath": "music/errors.py",
+      "lineRange": [
+        24,
+        25
+      ],
+      "summary": "Raised when a playback command is issued but the bot is not connected to a voice channel in the guild.",
+      "tags": [
+        "type-definition",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:music/errors.py:UserNotInVoiceError",
+      "type": "class",
+      "name": "UserNotInVoiceError",
+      "filePath": "music/errors.py",
+      "lineRange": [
+        28,
+        29
+      ],
+      "summary": "Raised when the user issuing a command is not currently in a voice channel.",
+      "tags": [
+        "type-definition",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:music/player.py",
+      "type": "file",
+      "name": "player.py",
+      "filePath": "music/player.py",
+      "summary": "Implements per-guild audio playback state via GuildPlayer, managing the voice client, playback queue, volume, loop mode, idle timer, and empty-channel auto-disconnect with asyncio task management.",
+      "tags": [
+        "service",
+        "event-handler",
+        "component",
+        "tested"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:music/player.py:AutoDisconnectConfig",
+      "type": "class",
+      "name": "AutoDisconnectConfig",
+      "filePath": "music/player.py",
+      "lineRange": [
+        26,
+        29
+      ],
+      "summary": "Dataclass holding configuration for automatic disconnection: inactivity timeout, empty-channel grace period, and disconnect-when-alone flag.",
+      "tags": [
+        "config",
+        "type-definition"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:music/player.py:GuildPlayer",
+      "type": "class",
+      "name": "GuildPlayer",
+      "filePath": "music/player.py",
+      "lineRange": [
+        32,
+        220
+      ],
+      "summary": "Core per-guild player encapsulating the Discord voice client, MusicQueue, volume transformer, idle and empty-channel async timers, and the full playback pipeline from enqueue through FFmpeg audio source construction.",
+      "tags": [
+        "service",
+        "event-handler",
+        "factory"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:music/sources.py",
+      "type": "file",
+      "name": "sources.py",
+      "filePath": "music/sources.py",
+      "summary": "Provides YTDLSourceFactory, which uses yt-dlp to resolve YouTube URLs/queries into TrackInfo metadata and to build FFmpeg PCM audio sources with volume transformation for Discord playback.",
+      "tags": [
+        "service",
+        "factory",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:music/sources.py:YTDLSourceFactory",
+      "type": "class",
+      "name": "YTDLSourceFactory",
+      "filePath": "music/sources.py",
+      "lineRange": [
+        37,
+        104
+      ],
+      "summary": "Factory that wraps yt-dlp to asynchronously extract track metadata (resolve) and construct playback-ready discord.FFmpegPCMAudio sources (build_audio_source) with volume control.",
+      "tags": [
+        "factory",
+        "service",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:music/queue.py",
+      "type": "file",
+      "name": "queue.py",
+      "filePath": "music/queue.py",
+      "summary": "Implements the per-guild music queue with a deque-backed MusicQueue class supporting loop modes (track/queue/off), shuffle, reorder, and removal, along with a LoopMode enum.",
+      "tags": [
+        "data-model",
+        "service",
+        "utility",
+        "tested"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:music/queue.py:MusicQueue",
+      "type": "class",
+      "name": "MusicQueue",
+      "filePath": "music/queue.py",
+      "lineRange": [
+        20,
+        105
+      ],
+      "summary": "Core queue data structure for a single guild, backing tracks with a deque and supporting enqueue, advance (with loop rotation), shuffle, move, remove, clear, and reset operations.",
+      "tags": [
+        "data-model",
+        "service",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:music/track.py",
+      "type": "file",
+      "name": "track.py",
+      "filePath": "music/track.py",
+      "summary": "Defines the TrackInfo dataclass that carries metadata for a single queued track, including title, URL, duration, uploader, and requester identity.",
+      "tags": [
+        "data-model",
+        "type-definition"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:music/track.py:TrackInfo",
+      "type": "class",
+      "name": "TrackInfo",
+      "filePath": "music/track.py",
+      "lineRange": [
+        14,
+        37
+      ],
+      "summary": "Dataclass holding per-track metadata (title, URL, duration, uploader, requester) with a duration_label helper that formats seconds as MM:SS or H:MM:SS.",
+      "tags": [
+        "data-model",
+        "type-definition"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:tests/test_player_auto_disconnect.py",
+      "type": "file",
+      "name": "test_player_auto_disconnect.py",
+      "filePath": "tests/test_player_auto_disconnect.py",
+      "summary": "Unit tests for GuildPlayer auto-disconnect behaviour, covering idle timer lifecycle (start, cancel on enqueue, cancel on stop, callback invocation) and empty-channel timer (start, cancel on repopulate, disabled variants).",
+      "tags": [
+        "test",
+        "service",
+        "event-handler"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:tests/test_player_auto_disconnect.py:_make_player",
+      "type": "function",
+      "name": "_make_player",
+      "filePath": "tests/test_player_auto_disconnect.py",
+      "lineRange": [
+        27,
+        50
+      ],
+      "summary": "Factory helper that constructs a fully mocked GuildPlayer with configurable AutoDisconnectConfig and a running asyncio event loop for use in auto-disconnect tests.",
+      "tags": [
+        "test",
+        "factory"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:tests/test_player_auto_disconnect.py:test_idle_timer_cancelled_on_enqueue",
+      "type": "function",
+      "name": "test_idle_timer_cancelled_on_enqueue",
+      "filePath": "tests/test_player_auto_disconnect.py",
+      "lineRange": [
+        64,
+        81
+      ],
+      "summary": "Verifies that an active idle disconnect timer is cancelled when a new track is enqueued into the player.",
+      "tags": [
+        "test",
+        "event-handler"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:tests/test_player_auto_disconnect.py:test_on_disconnect_callback_called_after_timeout",
+      "type": "function",
+      "name": "test_on_disconnect_callback_called_after_timeout",
+      "filePath": "tests/test_player_auto_disconnect.py",
+      "lineRange": [
+        98,
+        108
+      ],
+      "summary": "Confirms that the on_disconnect callback is invoked exactly once after the inactivity timer expires.",
+      "tags": [
+        "test",
+        "event-handler"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:tests/test_queue.py",
+      "type": "file",
+      "name": "test_queue.py",
+      "filePath": "tests/test_queue.py",
+      "summary": "Unit tests for the MusicQueue class, covering FIFO ordering, loop modes (track and queue), remove/move/shuffle operations, clear vs reset semantics, and error cases.",
+      "tags": [
+        "test",
+        "data-model"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:tests/test_queue.py:test_enqueue_and_advance_consumes_fifo_order",
+      "type": "function",
+      "name": "test_enqueue_and_advance_consumes_fifo_order",
+      "filePath": "tests/test_queue.py",
+      "lineRange": [
+        31,
+        42
+      ],
+      "summary": "Asserts that tracks are consumed in FIFO order as advance() is called and the queue becomes empty at exhaustion.",
+      "tags": [
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_queue.py:test_loop_queue_rotates_tracks",
+      "type": "function",
+      "name": "test_loop_queue_rotates_tracks",
+      "filePath": "tests/test_queue.py",
+      "lineRange": [
+        55,
+        66
+      ],
+      "summary": "Checks that LOOP_QUEUE mode re-appends consumed tracks to the end of the queue, producing a continuous rotation.",
+      "tags": [
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_queue.py:test_remove_at_position_uses_one_based_index",
+      "type": "function",
+      "name": "test_remove_at_position_uses_one_based_index",
+      "filePath": "tests/test_queue.py",
+      "lineRange": [
+        69,
+        78
+      ],
+      "summary": "Validates that remove_at uses 1-based indexing and correctly removes the track at the specified position.",
+      "tags": [
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_queue.py:test_clear_removes_upcoming_but_not_current",
+      "type": "function",
+      "name": "test_clear_removes_upcoming_but_not_current",
+      "filePath": "tests/test_queue.py",
+      "lineRange": [
+        121,
+        130
+      ],
+      "summary": "Ensures clear() removes all upcoming tracks while preserving the currently playing track.",
+      "tags": [
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_queue.py:test_reset_clears_everything",
+      "type": "function",
+      "name": "test_reset_clears_everything",
+      "filePath": "tests/test_queue.py",
+      "lineRange": [
+        133,
+        143
+      ],
+      "summary": "Confirms that reset() wipes both the current track and all upcoming tracks, resetting loop mode to OFF.",
+      "tags": [
+        "test"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:bot.py",
+      "type": "file",
+      "name": "bot.py",
+      "filePath": "bot.py",
+      "summary": "Main entry point that configures logging, constructs the discord.py Bot with cog loading, and runs the async event loop with graceful SIGTERM/SIGINT shutdown handling.",
+      "tags": [
+        "entry-point",
+        "service",
+        "event-handler"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:bot.py:_run_bot",
+      "type": "function",
+      "name": "_run_bot",
+      "filePath": "bot.py",
+      "lineRange": [
+        47,
+        80
+      ],
+      "summary": "Async function that loads the music cog, wires OS signal handlers for graceful shutdown, then races the bot's start task against a stop-event sentinel to coordinate clean teardown.",
+      "tags": [
+        "entry-point",
+        "event-handler",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:bot.py:_create_bot",
+      "type": "function",
+      "name": "_create_bot",
+      "filePath": "bot.py",
+      "lineRange": [
+        34,
+        44
+      ],
+      "summary": "Constructs and returns a configured discord.py commands.Bot instance with appropriate intents, command prefix, and help command from the provided BotConfig.",
+      "tags": [
+        "factory",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:config.py",
+      "type": "file",
+      "name": "config.py",
+      "filePath": "config.py",
+      "summary": "Defines the BotConfig dataclass and load_config factory that reads and validates all environment variables (DISCORD_TOKEN, COMMAND_PREFIX, DEFAULT_VOLUME, INACTIVITY_TIMEOUT_SECONDS, DISCONNECT_WHEN_ALONE, EMPTY_CHANNEL_GRACE_SECONDS) with typed parsing helpers.",
+      "tags": [
+        "configuration",
+        "validation",
+        "utility",
+        "tested"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:config.py:BotConfig",
+      "type": "class",
+      "name": "BotConfig",
+      "filePath": "config.py",
+      "lineRange": [
+        20,
+        29
+      ],
+      "summary": "Dataclass holding all validated bot configuration values including token, prefix, volume, log level, inactivity timeout, disconnect-when-alone flag, and empty-channel grace period.",
+      "tags": [
+        "data-model",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:config.py:load_config",
+      "type": "function",
+      "name": "load_config",
+      "filePath": "config.py",
+      "lineRange": [
+        32,
+        60
+      ],
+      "summary": "Loads .env via python-dotenv, reads all required and optional environment variables, delegates to typed parse helpers, and returns a fully validated BotConfig instance raising MissingConfigError on failure.",
+      "tags": [
+        "configuration",
+        "validation",
+        "factory"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:tests/test_config.py",
+      "type": "file",
+      "name": "test_config.py",
+      "filePath": "tests/test_config.py",
+      "summary": "Pytest suite covering load_config validation: missing token, default values for optional settings, out-of-range and non-numeric volume, and invalid or negative inactivity timeout values.",
+      "tags": [
+        "test",
+        "validation",
+        "configuration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "resource:.dockerignore",
+      "type": "resource",
+      "name": ".dockerignore",
+      "filePath": ".dockerignore",
+      "summary": "Docker build context exclusion rules that strip secrets (.env), Python caches, test files, editor metadata, and build artifacts from the image, keeping the context lean and preventing credential leakage.",
+      "tags": [
+        "infrastructure",
+        "containerization",
+        "security",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:Dockerfile",
+      "type": "service",
+      "name": "Dockerfile",
+      "filePath": "Dockerfile",
+      "summary": "Two-stage Docker build for the Discord music bot: a builder stage compiles Python dependencies with Poetry into an isolated virtualenv, and a minimal runtime stage installs ffmpeg and libopus, copies the venv and application source, and runs the bot as a non-root user.",
+      "tags": [
+        "containerization",
+        "infrastructure",
+        "deployment",
+        "build-system"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Multi-stage build pattern separates build-time tooling (Poetry, build-essential, libffi-dev) from the runtime image, significantly reducing the final image size. Poetry is installed in its own venv at /opt/poetry and is never copied to the runtime stage."
+    },
+    {
+      "id": "service:Dockerfile:builder",
+      "type": "service",
+      "name": "builder",
+      "filePath": "Dockerfile",
+      "summary": "Builder stage based on python:3.12-slim-bookworm that installs Poetry and resolves all runtime Python dependencies into /opt/venv for later copying into the runtime stage.",
+      "tags": [
+        "build-system",
+        "containerization",
+        "dependency-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "service:Dockerfile:runtime",
+      "type": "service",
+      "name": "runtime",
+      "filePath": "Dockerfile",
+      "summary": "Runtime stage based on python:3.12-slim-bookworm that installs ffmpeg, libopus0, and ca-certificates, copies the built venv and application source, and launches bot.py as the non-root appuser.",
+      "tags": [
+        "containerization",
+        "deployment",
+        "infrastructure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:.env.example",
+      "type": "config",
+      "name": ".env.example",
+      "filePath": ".env.example",
+      "summary": "Template environment file documenting all required and optional runtime configuration variables for the Discord music bot, including the bot token, command prefix, default volume, logging level, and three auto-disconnect settings (inactivity timeout, empty-channel grace period, and disconnect-when-alone flag).",
+      "tags": [
+        "configuration",
+        "environment",
+        "security",
+        "deployment"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Comprehensive user documentation covering the project's features, prerequisites, three setup paths (Poetry, pip/virtualenv, Docker), all bot commands, project layout, and instructions for running the test suite.",
+      "tags": [
+        "documentation",
+        "entry-point",
+        "overview",
+        "getting-started"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:pyproject.toml",
+      "type": "config",
+      "name": "pyproject.toml",
+      "filePath": "pyproject.toml",
+      "summary": "Poetry project manifest declaring runtime dependencies (discord.py, yt-dlp, PyNaCl, python-dotenv, davey), dev dependencies (pytest, pytest-asyncio), the `discord-player` CLI entry point wired to `bot:main`, and pytest configuration with auto asyncio mode.",
+      "tags": [
+        "configuration",
+        "build-system",
+        "dependency-management",
+        "poetry"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Uses Poetry's group-based dev dependencies and defines a console script entry point, enabling `discord-player` as a runnable command after installation."
+    },
+    {
+      "id": "document:requirements.txt",
+      "type": "document",
+      "name": "requirements.txt",
+      "filePath": "requirements.txt",
+      "summary": "Pinned pip-compatible dependency list mirroring the runtime dependencies from pyproject.toml, provided as an alternative installation path for users who prefer plain pip or virtualenv over Poetry.",
+      "tags": [
+        "dependency-management",
+        "configuration",
+        "documentation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.understand-anything/.understandignore",
+      "type": "file",
+      "name": ".understandignore",
+      "filePath": ".understand-anything/.understandignore",
+      "summary": "Exclusion pattern file for the understand-anything analysis tool, using gitignore syntax to control which files and directories are scanned. All patterns are currently commented out (suggestions only), meaning no custom exclusions are active beyond built-in defaults.",
+      "tags": [
+        "configuration",
+        "tooling",
+        "analysis"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:cogs/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "cogs/__init__.py",
+      "summary": "Empty package initializer that marks the `cogs` directory as an importable Python package, enabling Discord bot cog modules to be discovered and loaded.",
+      "tags": [
+        "entry-point",
+        "barrel",
+        "package-init"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:music/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "music/__init__.py",
+      "summary": "Empty package initializer that marks the `music` directory as an importable Python package, allowing the music module's components (queue, sources, track, errors) to be imported elsewhere.",
+      "tags": [
+        "entry-point",
+        "barrel",
+        "package-init"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:tests/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "tests/__init__.py",
+      "summary": "Empty package initializer that marks the `tests` directory as an importable Python package, enabling pytest to discover and run test modules within the directory.",
+      "tags": [
+        "test",
+        "package-init",
+        "entry-point"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:cogs/music.py",
+      "target": "file:music/errors.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:cogs/music.py",
+      "target": "file:music/player.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:cogs/music.py",
+      "target": "file:music/queue.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:cogs/music.py",
+      "target": "file:music/sources.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:cogs/music.py",
+      "target": "file:music/track.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:music/player.py",
+      "target": "file:music/errors.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:music/player.py",
+      "target": "file:music/queue.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:music/player.py",
+      "target": "file:music/sources.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:music/player.py",
+      "target": "file:music/track.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:music/sources.py",
+      "target": "file:music/errors.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:music/sources.py",
+      "target": "file:music/track.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:cogs/music.py",
+      "target": "class:cogs/music.py:Music",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:cogs/music.py",
+      "target": "class:cogs/music.py:Music",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:music/errors.py",
+      "target": "class:music/errors.py:MusicError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:music/errors.py",
+      "target": "class:music/errors.py:MusicError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:music/errors.py",
+      "target": "class:music/errors.py:TrackNotFoundError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:music/errors.py",
+      "target": "class:music/errors.py:TrackNotFoundError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:music/errors.py",
+      "target": "class:music/errors.py:NotConnectedError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:music/errors.py",
+      "target": "class:music/errors.py:NotConnectedError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:music/errors.py",
+      "target": "class:music/errors.py:UserNotInVoiceError",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:music/errors.py",
+      "target": "class:music/errors.py:UserNotInVoiceError",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:music/player.py",
+      "target": "class:music/player.py:AutoDisconnectConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:music/player.py",
+      "target": "class:music/player.py:AutoDisconnectConfig",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:music/player.py",
+      "target": "class:music/player.py:GuildPlayer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:music/player.py",
+      "target": "class:music/player.py:GuildPlayer",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:music/sources.py",
+      "target": "class:music/sources.py:YTDLSourceFactory",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:music/sources.py",
+      "target": "class:music/sources.py:YTDLSourceFactory",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:cogs/music.py:Music",
+      "target": "class:music/sources.py:YTDLSourceFactory",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:cogs/music.py:Music",
+      "target": "class:music/player.py:GuildPlayer",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:cogs/music.py:Music",
+      "target": "class:music/errors.py:NotConnectedError",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:cogs/music.py:Music",
+      "target": "class:music/errors.py:UserNotInVoiceError",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:music/player.py:GuildPlayer",
+      "target": "class:music/sources.py:YTDLSourceFactory",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "class:music/player.py:GuildPlayer",
+      "target": "class:music/errors.py:NotConnectedError",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "class:music/sources.py:YTDLSourceFactory",
+      "target": "class:music/errors.py:TrackNotFoundError",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:music/queue.py",
+      "target": "file:music/errors.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:music/queue.py",
+      "target": "file:music/track.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:music/queue.py",
+      "target": "class:music/queue.py:MusicQueue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:music/queue.py",
+      "target": "class:music/queue.py:MusicQueue",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:music/track.py",
+      "target": "class:music/track.py:TrackInfo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:music/track.py",
+      "target": "class:music/track.py:TrackInfo",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_player_auto_disconnect.py",
+      "target": "file:music/player.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_player_auto_disconnect.py",
+      "target": "file:music/track.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:music/player.py",
+      "target": "file:tests/test_player_auto_disconnect.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5,
+      "description": "Direction corrected (was test \u2192 production)"
+    },
+    {
+      "source": "file:tests/test_player_auto_disconnect.py",
+      "target": "function:tests/test_player_auto_disconnect.py:_make_player",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_player_auto_disconnect.py",
+      "target": "function:tests/test_player_auto_disconnect.py:test_idle_timer_cancelled_on_enqueue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_player_auto_disconnect.py",
+      "target": "function:tests/test_player_auto_disconnect.py:test_on_disconnect_callback_called_after_timeout",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "function:tests/test_player_auto_disconnect.py:_make_player",
+      "target": "class:music/player.py:GuildPlayer",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_queue.py",
+      "target": "file:music/errors.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_queue.py",
+      "target": "file:music/queue.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_queue.py",
+      "target": "file:music/track.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:music/queue.py",
+      "target": "file:tests/test_queue.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5,
+      "description": "Direction corrected (was test \u2192 production)"
+    },
+    {
+      "source": "file:tests/test_queue.py",
+      "target": "function:tests/test_queue.py:test_enqueue_and_advance_consumes_fifo_order",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_queue.py",
+      "target": "function:tests/test_queue.py:test_loop_queue_rotates_tracks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_queue.py",
+      "target": "function:tests/test_queue.py:test_remove_at_position_uses_one_based_index",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_queue.py",
+      "target": "function:tests/test_queue.py:test_clear_removes_upcoming_but_not_current",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:tests/test_queue.py",
+      "target": "function:tests/test_queue.py:test_reset_clears_everything",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:bot.py",
+      "target": "function:bot.py:_run_bot",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:bot.py",
+      "target": "function:bot.py:_create_bot",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:bot.py",
+      "target": "function:bot.py:_run_bot",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:bot.py",
+      "target": "function:bot.py:_create_bot",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:bot.py",
+      "target": "file:config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:config.py",
+      "target": "class:config.py:BotConfig",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:config.py",
+      "target": "function:config.py:load_config",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:config.py",
+      "target": "class:config.py:BotConfig",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:config.py",
+      "target": "function:config.py:load_config",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_config.py",
+      "target": "file:config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:config.py",
+      "target": "file:tests/test_config.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "function:bot.py:_run_bot",
+      "target": "function:bot.py:_create_bot",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:bot.py:_run_bot",
+      "target": "function:config.py:load_config",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "service:Dockerfile",
+      "target": "service:Dockerfile:builder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:Dockerfile",
+      "target": "service:Dockerfile:runtime",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:Dockerfile",
+      "target": "file:bot.py",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:Dockerfile",
+      "target": "resource:.dockerignore",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:Dockerfile",
+      "target": "config:pyproject.toml",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:cogs/__init__.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:pyproject.toml",
+      "target": "config:.env.example",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:bot-commands",
+      "name": "Bot Entry & Commands",
+      "description": "Application bootstrap and Discord.py Cog layer that wires the event loop, loads the music cog, and exposes all commands to Discord guild users.",
+      "nodeIds": [
+        "file:bot.py",
+        "file:cogs/music.py",
+        "file:cogs/__init__.py"
+      ]
+    },
+    {
+      "id": "layer:music-service",
+      "name": "Music Service Layer",
+      "description": "Core domain services managing per-guild audio playback, YouTube resolution, and queue logic.",
+      "nodeIds": [
+        "file:music/player.py",
+        "file:music/sources.py",
+        "file:music/queue.py",
+        "file:music/__init__.py"
+      ]
+    },
+    {
+      "id": "layer:domain-models",
+      "name": "Domain Models & Configuration",
+      "description": "Foundational data types and runtime configuration: TrackInfo, exception hierarchy, and BotConfig.",
+      "nodeIds": [
+        "file:music/track.py",
+        "file:music/errors.py",
+        "file:config.py"
+      ]
+    },
+    {
+      "id": "layer:tests",
+      "name": "Test Suite",
+      "description": "Pytest unit tests covering queue logic, GuildPlayer auto-disconnect, and load_config validation.",
+      "nodeIds": [
+        "file:tests/test_player_auto_disconnect.py",
+        "file:tests/test_queue.py",
+        "file:tests/test_config.py",
+        "file:tests/__init__.py"
+      ]
+    },
+    {
+      "id": "layer:infrastructure",
+      "name": "Infrastructure & Project Config",
+      "description": "Container build definitions, environment templates, dependency manifests, and project documentation.",
+      "nodeIds": [
+        "service:Dockerfile",
+        "service:Dockerfile:builder",
+        "service:Dockerfile:runtime",
+        "resource:.dockerignore",
+        "config:.env.example",
+        "config:pyproject.toml",
+        "document:README.md",
+        "document:requirements.txt",
+        "file:.understand-anything/.understandignore"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Project Overview",
+      "description": "Start with README.md to understand what this project is and how to run it.",
+      "nodeIds": [
+        "document:README.md"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Application Entry Point",
+      "description": "bot.py is the process entry point: it wires up logging, constructs the Bot, loads the cog, and handles graceful shutdown.",
+      "nodeIds": [
+        "file:bot.py"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Runtime Configuration",
+      "description": "config.py defines BotConfig, populated from environment variables by load_config. .env.example documents all settings.",
+      "nodeIds": [
+        "file:config.py",
+        "config:.env.example"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "Discord Cog & Command Surface",
+      "description": "cogs/music.py registers every user-visible command and owns the per-guild GuildPlayer lifecycle.",
+      "nodeIds": [
+        "file:cogs/music.py"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "Per-Guild Playback State",
+      "description": "music/player.py implements GuildPlayer, holding voice client, queue, volume, loop mode, and auto-disconnect timers for one guild.",
+      "nodeIds": [
+        "file:music/player.py"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "Track Queue",
+      "description": "music/queue.py implements MusicQueue with three loop modes, shuffle, reorder, and removal by index.",
+      "nodeIds": [
+        "file:music/queue.py"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "YouTube Audio Resolution",
+      "description": "music/sources.py provides YTDLSourceFactory: resolves queries via yt-dlp and builds FFmpeg audio sources for Discord.",
+      "nodeIds": [
+        "file:music/sources.py"
+      ]
+    },
+    {
+      "order": 8,
+      "title": "Domain Model: Track",
+      "description": "music/track.py defines TrackInfo, the typed dataclass flowing through every layer of the system.",
+      "nodeIds": [
+        "file:music/track.py"
+      ]
+    },
+    {
+      "order": 9,
+      "title": "Error Hierarchy",
+      "description": "music/errors.py defines MusicError and five concrete subtypes caught at the cog boundary to produce user-friendly messages.",
+      "nodeIds": [
+        "file:music/errors.py"
+      ]
+    },
+    {
+      "order": 10,
+      "title": "Queue & Config Tests",
+      "description": "tests/test_queue.py and test_config.py are the unit suites for the two most independently testable components.",
+      "nodeIds": [
+        "file:tests/test_queue.py",
+        "file:tests/test_config.py"
+      ]
+    },
+    {
+      "order": 11,
+      "title": "Auto-Disconnect Tests",
+      "description": "tests/test_player_auto_disconnect.py tests GuildPlayer idle and empty-channel timers using mocks and asyncio.",
+      "nodeIds": [
+        "file:tests/test_player_auto_disconnect.py"
+      ]
+    },
+    {
+      "order": 12,
+      "title": "Project Manifest",
+      "description": "pyproject.toml is the single source of truth for dependencies, the CLI entry point, and pytest configuration.",
+      "nodeIds": [
+        "config:pyproject.toml"
+      ]
+    },
+    {
+      "order": 13,
+      "title": "Containerization",
+      "description": "Dockerfile packages the bot via a two-stage build: builder installs deps, runtime adds ffmpeg/libopus and runs as non-root.",
+      "nodeIds": [
+        "service:Dockerfile",
+        "resource:.dockerignore"
+      ]
+    }
+  ]
+}
