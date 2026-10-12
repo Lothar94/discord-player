@@ -6,7 +6,7 @@
 # so it never ends up in the runtime image.
 FROM python:3.12-slim-bookworm AS builder
 
-ARG POETRY_VERSION=1.8.3
+ARG POETRY_VERSION=2.4.1
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
