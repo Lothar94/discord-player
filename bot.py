@@ -41,6 +41,7 @@ def _create_bot(config: BotConfig) -> commands.Bot:
     bot.inactivity_timeout_seconds = config.inactivity_timeout_seconds  # type: ignore[attr-defined]
     bot.disconnect_when_alone = config.disconnect_when_alone  # type: ignore[attr-defined]
     bot.empty_channel_grace_seconds = config.empty_channel_grace_seconds  # type: ignore[attr-defined]
+    bot.max_playlist_tracks = config.max_playlist_tracks  # type: ignore[attr-defined]
     return bot
 
 

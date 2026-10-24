@@ -19,7 +19,7 @@ from music.errors import (
 )
 from music.player import AutoDisconnectConfig, GuildPlayer
 from music.queue import LoopMode
-from music.sources import YTDLSourceFactory
+from music.sources import MAX_PLAYLIST_TRACKS, ResolvedQuery, YTDLSourceFactory
 from music.track import TrackInfo
 
 logger = logging.getLogger(__name__)
@@ -35,11 +35,12 @@ class Music(commands.Cog):
         bot: commands.Bot,
         default_volume: float,
         auto_disconnect: AutoDisconnectConfig,
+        source_factory: YTDLSourceFactory,
     ) -> None:
         self._bot = bot
         self._default_volume = default_volume
         self._auto_disconnect = auto_disconnect
-        self._source_factory = YTDLSourceFactory()
+        self._source_factory = source_factory
         self._players: Dict[int, GuildPlayer] = {}
 
     # --- Command implementations -------------------------------------------------
@@ -48,22 +49,20 @@ class Music(commands.Cog):
     async def join(self, ctx: commands.Context) -> None:
         """Join the author's current voice channel."""
 
-        await self._ensure_voice_connection(ctx)
+        await self._connect_player(ctx)
         await ctx.send(f"Joined **{ctx.author.voice.channel.name}**.")
 
     @commands.command(name="play", aliases=["p"])
     async def play(self, ctx: commands.Context, *, query: str) -> None:
-        """Play a song by URL or YouTube search."""
+        """Play a song or playlist by URL, or a YouTube search."""
 
-        await self._ensure_voice_connection(ctx)
-        player = self._get_player(ctx.guild)
-        player.set_notify_channel(ctx.channel)
+        player = await self._connect_player(ctx)
 
         async with ctx.typing():
-            track = await self._source_factory.resolve(query, requester=ctx.author)
-            await player.enqueue(track)
+            resolved = await self._source_factory.resolve(query, requester=ctx.author)
+            await player.enqueue_many(resolved.tracks)
 
-        await ctx.send(self._format_enqueued(track, position=len(player.queue)))
+        await ctx.send(self._format_resolved(resolved, position=len(player.queue)))
 
     @commands.command(name="search")
     async def search(self, ctx: commands.Context, *, query: str) -> None:
@@ -210,6 +209,8 @@ class Music(commands.Cog):
         if player is not None:
             await player.stop_and_disconnect()
             self._players.pop(ctx.guild.id, None)
+        elif ctx.guild.voice_client is not None:
+            await ctx.guild.voice_client.disconnect(force=False)
         await ctx.send("Stopped and disconnected.")
 
     # --- Error handling ---------------------------------------------------------
@@ -234,6 +235,14 @@ class Music(commands.Cog):
 
     # --- Helpers ----------------------------------------------------------------
 
+    async def _connect_player(self, ctx: commands.Context) -> GuildPlayer:
+        # Arm the idle timer right away so a join without playback still leaves.
+        await self._ensure_voice_connection(ctx)
+        player = self._get_player(ctx.guild)
+        player.set_notify_channel(ctx.channel)
+        player.start_idle_timer_if_idle()
+        return player
+
     async def _ensure_voice_connection(self, ctx: commands.Context) -> None:
         author_voice = getattr(ctx.author, "voice", None)
         if author_voice is None or author_voice.channel is None:
@@ -253,17 +262,34 @@ class Music(commands.Cog):
         before: discord.VoiceState,
         after: discord.VoiceState,
     ) -> None:
+        if self._is_self(member):
+            if after.channel is None:
+                self._discard_player(member.guild.id)
+            return
         if member.bot:
             return
-        for guild_id, player in list(self._players.items()):
-            voice = player.voice_client
-            if voice is None or not voice.is_connected():
-                continue
-            human_members = [m for m in voice.channel.members if not m.bot]
-            if len(human_members) == 0:
-                player.start_empty_channel_timer()
-            else:
-                player.cancel_empty_channel_timer()
+        player = self._players.get(member.guild.id)
+        if player is None:
+            return
+        voice = player.voice_client
+        if voice is None or not voice.is_connected():
+            return
+        human_members = [m for m in voice.channel.members if not m.bot]
+        if len(human_members) == 0:
+            player.start_empty_channel_timer()
+        else:
+            player.cancel_empty_channel_timer()
+
+    def _is_self(self, member: discord.Member) -> bool:
+        bot_user = self._bot.user
+        return bot_user is not None and member.id == bot_user.id
+
+    def _discard_player(self, guild_id: int) -> None:
+        # The voice connection is already gone (kicked, dropped or our own
+        # disconnect), so only release the player's state.
+        player = self._players.pop(guild_id, None)
+        if player is not None:
+            player.mark_disconnected()
 
     def _get_player(self, guild: discord.Guild) -> GuildPlayer:
         player = self._players.get(guild.id)
@@ -288,6 +314,15 @@ class Music(commands.Cog):
             raise NotConnectedError("I'm not connected to a voice channel.")
         return player
 
+    @classmethod
+    def _format_resolved(cls, resolved: ResolvedQuery, position: int) -> str:
+        if len(resolved.tracks) == 1:
+            return cls._format_enqueued(resolved.tracks[0], position=position)
+        message = f"Enqueued **{len(resolved.tracks)}** tracks"
+        if resolved.playlist_title:
+            return f"{message} from playlist **{resolved.playlist_title}**."
+        return f"{message}."
+
     @staticmethod
     def _format_enqueued(track: TrackInfo, position: int) -> str:
         if position == 0:
@@ -306,5 +341,8 @@ async def setup(bot: commands.Bot) -> None:
             inactivity_timeout=getattr(bot, "inactivity_timeout_seconds", 300),
             disconnect_when_alone=getattr(bot, "disconnect_when_alone", True),
             empty_channel_grace=getattr(bot, "empty_channel_grace_seconds", 60),
+        ),
+        source_factory=YTDLSourceFactory(
+            max_playlist_tracks=getattr(bot, "max_playlist_tracks", MAX_PLAYLIST_TRACKS),
         ),
     ))
