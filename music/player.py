@@ -134,7 +134,7 @@ class GuildPlayer:
 
     def _restart_idle_timer(self) -> None:
         self._cancel_idle_timer()
-        if self._inactivity_timeout <= 0:
+        if self._disconnecting or self._inactivity_timeout <= 0:
             return
         self._idle_task = asyncio.ensure_future(
             self._run_idle_timer()
@@ -183,6 +183,8 @@ class GuildPlayer:
         return voice is not None and (voice.is_playing() or voice.is_paused())
 
     async def _play_next(self) -> None:
+        if self._disconnecting:
+            return
         next_track = self._queue.advance()
         if next_track is None:
             self._restart_idle_timer()

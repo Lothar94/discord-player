@@ -210,3 +210,21 @@ async def test_on_disconnect_called_even_if_disconnect_raises() -> None:
 
     callback.assert_called_once_with(1)
     voice_client.disconnect.assert_any_await(force=True)
+
+
+@pytest.mark.asyncio
+async def test_no_idle_timer_after_stop_and_disconnect() -> None:
+    player = _make_player(inactivity_timeout=0.01)
+    notify_channel = MagicMock()
+    notify_channel.send = AsyncMock()
+    player.set_notify_channel(notify_channel)
+    player._guild.voice_client = _make_voice_client(playing=True)
+
+    await player.stop_and_disconnect()
+    # voice.stop() fires the `after` callback, which advances the queue.
+    await player._play_next()
+    player._restart_idle_timer()
+    await asyncio.sleep(0.05)
+
+    assert player._idle_task is None
+    notify_channel.send.assert_not_awaited()
