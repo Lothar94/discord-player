@@ -83,6 +83,7 @@ class GuildPlayer:
     async def skip(self) -> None:
         voice = self._require_voice_client()
         if voice.is_playing() or voice.is_paused():
+            self._queue.request_skip()
             voice.stop()
 
     async def pause(self) -> None:
@@ -201,6 +202,7 @@ class GuildPlayer:
                 next_track, volume=self._volume
             )
         except TrackNotFoundError as error:
+            self._queue.drop_current()
             await self._notify(f"Skipping '{next_track.title}': {error}")
             await self._play_next()
             return

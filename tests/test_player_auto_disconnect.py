@@ -8,7 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from music.errors import TrackNotFoundError
 from music.player import AutoDisconnectConfig, GuildPlayer
+from music.queue import LoopMode
 from music.track import TrackInfo
 
 
@@ -228,3 +230,62 @@ async def test_no_idle_timer_after_stop_and_disconnect() -> None:
 
     assert player._idle_task is None
     notify_channel.send.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_track_loop_with_missing_track_does_not_recurse() -> None:
+    player = _make_player(inactivity_timeout=300)
+    voice_client = _make_voice_client()
+    player._guild.voice_client = voice_client
+    player._source_factory.build_audio_source = AsyncMock(
+        side_effect=TrackNotFoundError("gone")
+    )
+    player.queue.enqueue(_make_track("a"))
+    player.queue.advance()
+    player.queue.set_loop_mode(LoopMode.TRACK)
+
+    await asyncio.wait_for(player._play_next(), timeout=1)
+
+    voice_client.play.assert_not_called()
+    assert player._idle_task is not None
+    player._idle_task.cancel()
+
+
+@pytest.mark.asyncio
+async def test_track_loop_with_missing_track_plays_next_one() -> None:
+    player = _make_player(inactivity_timeout=300)
+    voice_client = _make_voice_client()
+    player._guild.voice_client = voice_client
+    audio_source = MagicMock()
+    player._source_factory.build_audio_source = AsyncMock(
+        side_effect=[TrackNotFoundError("gone"), audio_source]
+    )
+    player.queue.enqueue(_make_track("a"))
+    player.queue.enqueue(_make_track("b"))
+    player.queue.advance()
+    player.queue.set_loop_mode(LoopMode.TRACK)
+
+    await asyncio.wait_for(player._play_next(), timeout=1)
+
+    assert player.queue.current.title == "b"
+    voice_client.play.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_skip_in_track_loop_moves_to_next_track() -> None:
+    player = _make_player(inactivity_timeout=300)
+    voice_client = _make_voice_client(playing=True)
+    player._guild.voice_client = voice_client
+    player._source_factory.build_audio_source = AsyncMock(return_value=MagicMock())
+    player.queue.enqueue(_make_track("a"))
+    player.queue.enqueue(_make_track("b"))
+    player.queue.advance()
+    player.queue.set_loop_mode(LoopMode.TRACK)
+
+    await player.skip()
+    voice_client.is_playing.return_value = False
+    await player._play_next()  # what the `after` callback triggers
+
+    voice_client.stop.assert_called_once()
+    assert player.queue.current.title == "b"
+    assert player.queue.loop_mode is LoopMode.TRACK

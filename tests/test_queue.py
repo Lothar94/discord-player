@@ -141,3 +141,66 @@ def test_reset_clears_everything() -> None:
     assert queue.is_empty
     assert queue.current is None
     assert queue.loop_mode is LoopMode.OFF
+
+
+def test_drop_current_lets_track_loop_advance() -> None:
+    queue = MusicQueue()
+    queue.enqueue(_make_track("a"))
+    queue.enqueue(_make_track("b"))
+    queue.advance()  # current = a
+    queue.set_loop_mode(LoopMode.TRACK)
+
+    queue.drop_current()
+
+    assert queue.current is None
+    assert queue.advance().title == "b"
+
+
+def test_drop_current_is_not_requeued_in_queue_loop() -> None:
+    queue = MusicQueue()
+    queue.enqueue(_make_track("a"))
+    queue.advance()  # current = a
+    queue.set_loop_mode(LoopMode.QUEUE)
+
+    queue.drop_current()
+
+    assert queue.advance() is None
+
+
+def test_request_skip_advances_once_in_track_loop() -> None:
+    queue = MusicQueue()
+    queue.enqueue(_make_track("a"))
+    queue.enqueue(_make_track("b"))
+    queue.advance()  # current = a
+    queue.set_loop_mode(LoopMode.TRACK)
+
+    queue.request_skip()
+    skipped_to = queue.advance()
+    looped = queue.advance()
+
+    assert skipped_to.title == "b"
+    assert looped.title == "b"
+    assert queue.loop_mode is LoopMode.TRACK
+
+
+def test_request_skip_keeps_queue_loop_rotation() -> None:
+    queue = MusicQueue()
+    queue.enqueue(_make_track("a"))
+    queue.enqueue(_make_track("b"))
+    queue.advance()  # current = a
+    queue.set_loop_mode(LoopMode.QUEUE)
+
+    queue.request_skip()
+
+    assert queue.advance().title == "b"
+    assert [track.title for track in queue.upcoming] == ["a"]
+
+
+def test_request_skip_is_consumed_by_next_advance() -> None:
+    queue = MusicQueue()
+    queue.enqueue(_make_track("a"))
+    queue.request_skip()
+    queue.advance()  # current = a, consumes the skip
+    queue.set_loop_mode(LoopMode.TRACK)
+
+    assert queue.advance().title == "a"
