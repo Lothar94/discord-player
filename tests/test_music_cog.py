@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -83,3 +84,90 @@ async def test_stop_without_player_disconnects_voice_client() -> None:
 
     ctx.guild.voice_client.disconnect.assert_awaited_once()
 
+
+def _make_member(member_id: int, bot: bool, guild_id: int = 1) -> MagicMock:
+    member = MagicMock()
+    member.id = member_id
+    member.bot = bot
+    member.guild.id = guild_id
+    return member
+
+
+def _make_voice_state(channel) -> MagicMock:
+    state = MagicMock()
+    state.channel = channel
+    return state
+
+
+@pytest.mark.asyncio
+async def test_bot_self_disconnect_cleans_up_player() -> None:
+    cog = _make_cog()
+    ctx = _make_ctx()
+    await Music.join.callback(cog, ctx)
+    player = cog._players[ctx.guild.id]
+    idle_task = player._idle_task
+    player.start_empty_channel_timer()
+    empty_channel_task = player._empty_channel_task
+    voice_client = ctx.guild.voice_client
+    bot_member = _make_member(_BOT_USER_ID, bot=True)
+
+    await cog.on_voice_state_update(
+        bot_member, _make_voice_state(MagicMock()), _make_voice_state(None)
+    )
+    await asyncio.sleep(0)
+
+    assert ctx.guild.id not in cog._players
+    assert idle_task.cancelled()
+    assert empty_channel_task.cancelled()
+    voice_client.disconnect.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_other_bot_leaving_is_ignored() -> None:
+    cog = _make_cog()
+    ctx = _make_ctx()
+    await Music.join.callback(cog, ctx)
+    other_bot = _make_member(123, bot=True)
+
+    await cog.on_voice_state_update(
+        other_bot, _make_voice_state(MagicMock()), _make_voice_state(None)
+    )
+
+    player = cog._players[ctx.guild.id]
+    assert player._empty_channel_task is None
+    player._idle_task.cancel()
+
+
+@pytest.mark.asyncio
+async def test_empty_channel_check_only_targets_event_guild() -> None:
+    cog = _make_cog()
+    ctx = _make_ctx()
+    ctx.guild.voice_client.channel.members = []
+    await Music.join.callback(cog, ctx)
+    human = _make_member(5, bot=False, guild_id=2)
+
+    await cog.on_voice_state_update(
+        human, _make_voice_state(MagicMock()), _make_voice_state(None)
+    )
+
+    player = cog._players[ctx.guild.id]
+    assert player._empty_channel_task is None
+    player._idle_task.cancel()
+
+
+@pytest.mark.asyncio
+async def test_last_human_leaving_starts_empty_channel_timer() -> None:
+    cog = _make_cog()
+    ctx = _make_ctx()
+    ctx.guild.voice_client.channel.members = []
+    await Music.join.callback(cog, ctx)
+    human = _make_member(5, bot=False, guild_id=ctx.guild.id)
+
+    await cog.on_voice_state_update(
+        human, _make_voice_state(MagicMock()), _make_voice_state(None)
+    )
+
+    player = cog._players[ctx.guild.id]
+    assert player._empty_channel_task is not None
+    player._empty_channel_task.cancel()
+    player._idle_task.cancel()

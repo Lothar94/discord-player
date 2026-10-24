@@ -261,17 +261,34 @@ class Music(commands.Cog):
         before: discord.VoiceState,
         after: discord.VoiceState,
     ) -> None:
+        if self._is_self(member):
+            if after.channel is None:
+                self._discard_player(member.guild.id)
+            return
         if member.bot:
             return
-        for guild_id, player in list(self._players.items()):
-            voice = player.voice_client
-            if voice is None or not voice.is_connected():
-                continue
-            human_members = [m for m in voice.channel.members if not m.bot]
-            if len(human_members) == 0:
-                player.start_empty_channel_timer()
-            else:
-                player.cancel_empty_channel_timer()
+        player = self._players.get(member.guild.id)
+        if player is None:
+            return
+        voice = player.voice_client
+        if voice is None or not voice.is_connected():
+            return
+        human_members = [m for m in voice.channel.members if not m.bot]
+        if len(human_members) == 0:
+            player.start_empty_channel_timer()
+        else:
+            player.cancel_empty_channel_timer()
+
+    def _is_self(self, member: discord.Member) -> bool:
+        bot_user = self._bot.user
+        return bot_user is not None and member.id == bot_user.id
+
+    def _discard_player(self, guild_id: int) -> None:
+        # The voice connection is already gone (kicked, dropped or our own
+        # disconnect), so only release the player's state.
+        player = self._players.pop(guild_id, None)
+        if player is not None:
+            player.mark_disconnected()
 
     def _get_player(self, guild: discord.Guild) -> GuildPlayer:
         player = self._players.get(guild.id)

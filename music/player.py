@@ -107,15 +107,20 @@ class GuildPlayer:
     async def stop_and_disconnect(self) -> None:
         if self._disconnecting:
             return
-        self._disconnecting = True
-        self._cancel_idle_timer()
-        self.cancel_empty_channel_timer()
-        self._queue.reset()
+        self.mark_disconnected()
         try:
             await self._disconnect_voice()
         finally:
             if self._on_disconnect is not None:
                 self._on_disconnect(self._guild.id)
+
+    def mark_disconnected(self) -> None:
+        """Release timers and queue without touching the voice connection."""
+
+        self._disconnecting = True
+        self._cancel_idle_timer()
+        self.cancel_empty_channel_timer()
+        self._queue.reset()
 
     def start_idle_timer_if_idle(self) -> None:
         voice = self.voice_client
