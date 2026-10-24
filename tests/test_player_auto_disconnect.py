@@ -361,3 +361,56 @@ async def test_concurrent_enqueue_starts_playback_once() -> None:
     assert player.queue.current.title == "a"
     assert [track.title for track in player.queue.upcoming] == ["b"]
     assert player._idle_task is None
+
+
+@pytest.mark.asyncio
+async def test_disconnect_during_stream_resolution_does_not_play() -> None:
+    player = _make_player(inactivity_timeout=300)
+    voice_client = _make_voice_client()
+    player._guild.voice_client = voice_client
+    audio_source = MagicMock()
+
+    async def _build(*args, **kwargs) -> MagicMock:
+        player.mark_disconnected()
+        return audio_source
+
+    player._source_factory.build_audio_source = AsyncMock(side_effect=_build)
+
+    await player.enqueue(_make_track())
+
+    voice_client.play.assert_not_called()
+    audio_source.cleanup.assert_called_once()
+    assert player._idle_task is None
+
+
+@pytest.mark.asyncio
+async def test_idle_timer_notifies_after_disconnect() -> None:
+    events = []
+    channel = MagicMock()
+    channel.send = AsyncMock(side_effect=lambda message: events.append("notify"))
+    player = _make_player(inactivity_timeout=0.01)
+    player.set_notify_channel(channel)
+    voice_client = _make_voice_client()
+    voice_client.disconnect = AsyncMock(side_effect=lambda **kwargs: events.append("disconnect"))
+    player._guild.voice_client = voice_client
+
+    player._restart_idle_timer()
+    await _wait_for_task(player._idle_task)
+
+    assert events == ["disconnect", "notify"]
+
+
+@pytest.mark.asyncio
+async def test_idle_timer_skips_notice_when_already_disconnecting() -> None:
+    channel = MagicMock()
+    channel.send = AsyncMock()
+    player = _make_player(inactivity_timeout=0.01)
+    player.set_notify_channel(channel)
+    player._guild.voice_client = _make_voice_client()
+
+    player._restart_idle_timer()
+    task = player._idle_task
+    player._disconnecting = True
+    await _wait_for_task(task)
+
+    channel.send.assert_not_called()

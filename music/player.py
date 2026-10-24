@@ -183,13 +183,21 @@ class GuildPlayer:
 
     async def _run_idle_timer(self) -> None:
         await asyncio.sleep(self._inactivity_timeout)
-        await self._notify(f"Disconnected after {self._inactivity_timeout}s of inactivity.")
-        await self.stop_and_disconnect()
+        await self._disconnect_with_notice(
+            f"Disconnected after {self._inactivity_timeout}s of inactivity."
+        )
 
     async def _run_empty_channel_timer(self) -> None:
         await asyncio.sleep(self._empty_channel_grace)
-        await self._notify("Disconnected because the channel was empty.")
+        await self._disconnect_with_notice("Disconnected because the channel was empty.")
+
+    async def _disconnect_with_notice(self, message: str) -> None:
+        # Notify only after leaving, so the message never announces a
+        # disconnect that a concurrent command cancelled.
+        if self._disconnecting:
+            return
         await self.stop_and_disconnect()
+        await self._notify(message)
 
     def _require_voice_client(self) -> discord.VoiceClient:
         voice = self.voice_client
@@ -229,6 +237,11 @@ class GuildPlayer:
                 self._queue.drop_current()
                 await self._notify(f"Skipping '{next_track.title}': {error}")
                 continue
+
+            # Resolving the stream is slow; the bot may have left meanwhile.
+            if self._disconnecting or not voice.is_connected():
+                audio_source.cleanup()
+                return False
 
             voice.play(audio_source, after=self._on_playback_finished)
             self._cancel_idle_timer()
