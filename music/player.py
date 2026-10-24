@@ -117,6 +117,14 @@ class GuildPlayer:
             if self._on_disconnect is not None:
                 self._on_disconnect(self._guild.id)
 
+    def start_idle_timer_if_idle(self) -> None:
+        voice = self.voice_client
+        if voice is not None and voice.is_playing():
+            return
+        if self._idle_task is not None and not self._idle_task.done():
+            return
+        self._restart_idle_timer()
+
     def start_empty_channel_timer(self) -> None:
         if not self._disconnect_when_alone:
             return

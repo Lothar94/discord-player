@@ -48,16 +48,14 @@ class Music(commands.Cog):
     async def join(self, ctx: commands.Context) -> None:
         """Join the author's current voice channel."""
 
-        await self._ensure_voice_connection(ctx)
+        await self._connect_player(ctx)
         await ctx.send(f"Joined **{ctx.author.voice.channel.name}**.")
 
     @commands.command(name="play", aliases=["p"])
     async def play(self, ctx: commands.Context, *, query: str) -> None:
         """Play a song by URL or YouTube search."""
 
-        await self._ensure_voice_connection(ctx)
-        player = self._get_player(ctx.guild)
-        player.set_notify_channel(ctx.channel)
+        player = await self._connect_player(ctx)
 
         async with ctx.typing():
             track = await self._source_factory.resolve(query, requester=ctx.author)
@@ -233,6 +231,14 @@ class Music(commands.Cog):
         await ctx.send("An unexpected error occurred. Check the logs.")
 
     # --- Helpers ----------------------------------------------------------------
+
+    async def _connect_player(self, ctx: commands.Context) -> GuildPlayer:
+        # Arm the idle timer right away so a join without playback still leaves.
+        await self._ensure_voice_connection(ctx)
+        player = self._get_player(ctx.guild)
+        player.set_notify_channel(ctx.channel)
+        player.start_idle_timer_if_idle()
+        return player
 
     async def _ensure_voice_connection(self, ctx: commands.Context) -> None:
         author_voice = getattr(ctx.author, "voice", None)
