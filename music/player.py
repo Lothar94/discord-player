@@ -74,15 +74,13 @@ class GuildPlayer:
         self._notify_channel = channel
 
     async def enqueue(self, track: TrackInfo) -> None:
-        async with self._lock:
-            self._queue.enqueue(track)
-        self._cancel_idle_timer()
-        if not self._is_playing_or_paused():
-            await self._play_next()
+        self._queue.enqueue(track)
+        await self._play_next()
 
     async def skip(self) -> None:
         voice = self._require_voice_client()
         if voice.is_playing() or voice.is_paused():
+            self._queue.request_skip()
             voice.stop()
 
     async def pause(self) -> None:
@@ -109,17 +107,28 @@ class GuildPlayer:
     async def stop_and_disconnect(self) -> None:
         if self._disconnecting:
             return
+        self.mark_disconnected()
+        try:
+            await self._disconnect_voice()
+        finally:
+            if self._on_disconnect is not None:
+                self._on_disconnect(self._guild.id)
+
+    def mark_disconnected(self) -> None:
+        """Release timers and queue without touching the voice connection."""
+
         self._disconnecting = True
         self._cancel_idle_timer()
         self.cancel_empty_channel_timer()
-        voice = self.voice_client
         self._queue.reset()
-        if voice is not None:
-            if voice.is_playing() or voice.is_paused():
-                voice.stop()
-            await voice.disconnect(force=False)
-        if self._on_disconnect is not None:
-            self._on_disconnect(self._guild.id)
+
+    def start_idle_timer_if_idle(self) -> None:
+        voice = self.voice_client
+        if voice is not None and voice.is_playing():
+            return
+        if self._idle_task is not None and not self._idle_task.done():
+            return
+        self._restart_idle_timer()
 
     def start_empty_channel_timer(self) -> None:
         if not self._disconnect_when_alone:
@@ -131,22 +140,38 @@ class GuildPlayer:
         )
 
     def cancel_empty_channel_timer(self) -> None:
-        if self._empty_channel_task is not None:
-            self._empty_channel_task.cancel()
-            self._empty_channel_task = None
+        _cancel_unless_current(self._empty_channel_task)
+        self._empty_channel_task = None
 
     def _restart_idle_timer(self) -> None:
         self._cancel_idle_timer()
-        if self._inactivity_timeout <= 0:
+        if self._disconnecting or self._inactivity_timeout <= 0:
             return
         self._idle_task = asyncio.ensure_future(
             self._run_idle_timer()
         )
 
     def _cancel_idle_timer(self) -> None:
-        if self._idle_task is not None:
-            self._idle_task.cancel()
-            self._idle_task = None
+        _cancel_unless_current(self._idle_task)
+        self._idle_task = None
+
+    async def _disconnect_voice(self) -> None:
+        voice = self.voice_client
+        if voice is None:
+            return
+        if voice.is_playing() or voice.is_paused():
+            voice.stop()
+        try:
+            await voice.disconnect(force=False)
+        except Exception:
+            logger.exception("Graceful disconnect failed in guild %s; forcing", self._guild.id)
+            await self._force_disconnect(voice)
+
+    async def _force_disconnect(self, voice: discord.VoiceClient) -> None:
+        try:
+            await voice.disconnect(force=True)
+        except Exception:
+            logger.exception("Forced disconnect failed in guild %s", self._guild.id)
 
     async def _run_idle_timer(self) -> None:
         await asyncio.sleep(self._inactivity_timeout)
@@ -169,28 +194,39 @@ class GuildPlayer:
         return voice is not None and (voice.is_playing() or voice.is_paused())
 
     async def _play_next(self) -> None:
-        next_track = self._queue.advance()
-        if next_track is None:
-            self._restart_idle_timer()
-            return
+        # The lock serializes the "is anything playing?" check with voice.play.
+        async with self._lock:
+            if self._disconnecting or self._is_playing_or_paused():
+                return
+            try:
+                started = await self._start_next_track()
+            except Exception:
+                self._restart_idle_timer()
+                raise
+            if not started:
+                self._restart_idle_timer()
 
-        self._cancel_idle_timer()
-        voice = self.voice_client
-        if voice is None or not voice.is_connected():
-            logger.warning("Voice client gone while advancing queue in guild %s", self._guild.id)
-            return
+    async def _start_next_track(self) -> bool:
+        while (next_track := self._queue.advance()) is not None:
+            voice = self.voice_client
+            if voice is None or not voice.is_connected():
+                logger.warning("Voice client gone while advancing queue in guild %s", self._guild.id)
+                return False
 
-        try:
-            audio_source = await self._source_factory.build_audio_source(
-                next_track, volume=self._volume
-            )
-        except TrackNotFoundError as error:
-            await self._notify(f"Skipping '{next_track.title}': {error}")
-            await self._play_next()
-            return
+            try:
+                audio_source = await self._source_factory.build_audio_source(
+                    next_track, volume=self._volume
+                )
+            except TrackNotFoundError as error:
+                self._queue.drop_current()
+                await self._notify(f"Skipping '{next_track.title}': {error}")
+                continue
 
-        voice.play(audio_source, after=self._on_playback_finished)
-        await self._notify_now_playing(next_track)
+            voice.play(audio_source, after=self._on_playback_finished)
+            self._cancel_idle_timer()
+            await self._notify_now_playing(next_track)
+            return True
+        return False
 
     def _on_playback_finished(self, error: Optional[Exception]) -> None:
         if error is not None:
@@ -218,3 +254,9 @@ class GuildPlayer:
             await self._notify_channel.send(message)
         except discord.DiscordException:
             logger.warning("Failed to send notification in guild %s", self._guild.id)
+
+
+def _cancel_unless_current(task: Optional[asyncio.Task]) -> None:
+    # A timer that triggers the disconnect itself must not cancel its own task.
+    if task is not None and task is not asyncio.current_task():
+        task.cancel()

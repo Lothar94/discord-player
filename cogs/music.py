@@ -48,16 +48,14 @@ class Music(commands.Cog):
     async def join(self, ctx: commands.Context) -> None:
         """Join the author's current voice channel."""
 
-        await self._ensure_voice_connection(ctx)
+        await self._connect_player(ctx)
         await ctx.send(f"Joined **{ctx.author.voice.channel.name}**.")
 
     @commands.command(name="play", aliases=["p"])
     async def play(self, ctx: commands.Context, *, query: str) -> None:
         """Play a song by URL or YouTube search."""
 
-        await self._ensure_voice_connection(ctx)
-        player = self._get_player(ctx.guild)
-        player.set_notify_channel(ctx.channel)
+        player = await self._connect_player(ctx)
 
         async with ctx.typing():
             track = await self._source_factory.resolve(query, requester=ctx.author)
@@ -210,6 +208,8 @@ class Music(commands.Cog):
         if player is not None:
             await player.stop_and_disconnect()
             self._players.pop(ctx.guild.id, None)
+        elif ctx.guild.voice_client is not None:
+            await ctx.guild.voice_client.disconnect(force=False)
         await ctx.send("Stopped and disconnected.")
 
     # --- Error handling ---------------------------------------------------------
@@ -234,6 +234,14 @@ class Music(commands.Cog):
 
     # --- Helpers ----------------------------------------------------------------
 
+    async def _connect_player(self, ctx: commands.Context) -> GuildPlayer:
+        # Arm the idle timer right away so a join without playback still leaves.
+        await self._ensure_voice_connection(ctx)
+        player = self._get_player(ctx.guild)
+        player.set_notify_channel(ctx.channel)
+        player.start_idle_timer_if_idle()
+        return player
+
     async def _ensure_voice_connection(self, ctx: commands.Context) -> None:
         author_voice = getattr(ctx.author, "voice", None)
         if author_voice is None or author_voice.channel is None:
@@ -253,17 +261,34 @@ class Music(commands.Cog):
         before: discord.VoiceState,
         after: discord.VoiceState,
     ) -> None:
+        if self._is_self(member):
+            if after.channel is None:
+                self._discard_player(member.guild.id)
+            return
         if member.bot:
             return
-        for guild_id, player in list(self._players.items()):
-            voice = player.voice_client
-            if voice is None or not voice.is_connected():
-                continue
-            human_members = [m for m in voice.channel.members if not m.bot]
-            if len(human_members) == 0:
-                player.start_empty_channel_timer()
-            else:
-                player.cancel_empty_channel_timer()
+        player = self._players.get(member.guild.id)
+        if player is None:
+            return
+        voice = player.voice_client
+        if voice is None or not voice.is_connected():
+            return
+        human_members = [m for m in voice.channel.members if not m.bot]
+        if len(human_members) == 0:
+            player.start_empty_channel_timer()
+        else:
+            player.cancel_empty_channel_timer()
+
+    def _is_self(self, member: discord.Member) -> bool:
+        bot_user = self._bot.user
+        return bot_user is not None and member.id == bot_user.id
+
+    def _discard_player(self, guild_id: int) -> None:
+        # The voice connection is already gone (kicked, dropped or our own
+        # disconnect), so only release the player's state.
+        player = self._players.pop(guild_id, None)
+        if player is not None:
+            player.mark_disconnected()
 
     def _get_player(self, guild: discord.Guild) -> GuildPlayer:
         player = self._players.get(guild.id)
