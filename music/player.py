@@ -112,14 +112,12 @@ class GuildPlayer:
         self._disconnecting = True
         self._cancel_idle_timer()
         self.cancel_empty_channel_timer()
-        voice = self.voice_client
         self._queue.reset()
-        if voice is not None:
-            if voice.is_playing() or voice.is_paused():
-                voice.stop()
-            await voice.disconnect(force=False)
-        if self._on_disconnect is not None:
-            self._on_disconnect(self._guild.id)
+        try:
+            await self._disconnect_voice()
+        finally:
+            if self._on_disconnect is not None:
+                self._on_disconnect(self._guild.id)
 
     def start_empty_channel_timer(self) -> None:
         if not self._disconnect_when_alone:
@@ -131,9 +129,8 @@ class GuildPlayer:
         )
 
     def cancel_empty_channel_timer(self) -> None:
-        if self._empty_channel_task is not None:
-            self._empty_channel_task.cancel()
-            self._empty_channel_task = None
+        _cancel_unless_current(self._empty_channel_task)
+        self._empty_channel_task = None
 
     def _restart_idle_timer(self) -> None:
         self._cancel_idle_timer()
@@ -144,9 +141,26 @@ class GuildPlayer:
         )
 
     def _cancel_idle_timer(self) -> None:
-        if self._idle_task is not None:
-            self._idle_task.cancel()
-            self._idle_task = None
+        _cancel_unless_current(self._idle_task)
+        self._idle_task = None
+
+    async def _disconnect_voice(self) -> None:
+        voice = self.voice_client
+        if voice is None:
+            return
+        if voice.is_playing() or voice.is_paused():
+            voice.stop()
+        try:
+            await voice.disconnect(force=False)
+        except Exception:
+            logger.exception("Graceful disconnect failed in guild %s; forcing", self._guild.id)
+            await self._force_disconnect(voice)
+
+    async def _force_disconnect(self, voice: discord.VoiceClient) -> None:
+        try:
+            await voice.disconnect(force=True)
+        except Exception:
+            logger.exception("Forced disconnect failed in guild %s", self._guild.id)
 
     async def _run_idle_timer(self) -> None:
         await asyncio.sleep(self._inactivity_timeout)
@@ -218,3 +232,9 @@ class GuildPlayer:
             await self._notify_channel.send(message)
         except discord.DiscordException:
             logger.warning("Failed to send notification in guild %s", self._guild.id)
+
+
+def _cancel_unless_current(task: Optional[asyncio.Task]) -> None:
+    # A timer that triggers the disconnect itself must not cancel its own task.
+    if task is not None and task is not asyncio.current_task():
+        task.cancel()

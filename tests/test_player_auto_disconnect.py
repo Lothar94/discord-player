@@ -146,3 +146,67 @@ async def test_disabled_alone_does_not_schedule_timer() -> None:
     player.start_empty_channel_timer()
 
     assert player._empty_channel_task is None
+
+
+async def _suspend(*args, **kwargs) -> None:
+    await asyncio.sleep(0)
+
+
+def _make_voice_client(playing: bool = False, paused: bool = False) -> MagicMock:
+    voice_client = MagicMock()
+    voice_client.is_connected.return_value = True
+    voice_client.is_playing.return_value = playing
+    voice_client.is_paused.return_value = paused
+    voice_client.disconnect = AsyncMock(side_effect=_suspend)
+    return voice_client
+
+
+async def _wait_for_task(task: asyncio.Task) -> None:
+    done, _ = await asyncio.wait([task], timeout=1)
+    assert task in done
+
+
+@pytest.mark.asyncio
+async def test_idle_timer_completes_disconnect_when_disconnect_suspends() -> None:
+    callback = MagicMock()
+    player = _make_player(inactivity_timeout=0.01, on_disconnect=callback)
+    voice_client = _make_voice_client()
+    player._guild.voice_client = voice_client
+
+    player._restart_idle_timer()
+    task = player._idle_task
+    await _wait_for_task(task)
+
+    assert not task.cancelled()
+    voice_client.disconnect.assert_awaited_once()
+    callback.assert_called_once_with(1)
+
+
+@pytest.mark.asyncio
+async def test_empty_channel_timer_completes_disconnect_when_disconnect_suspends() -> None:
+    callback = MagicMock()
+    player = _make_player(empty_channel_grace=0.01, on_disconnect=callback)
+    voice_client = _make_voice_client()
+    player._guild.voice_client = voice_client
+
+    player.start_empty_channel_timer()
+    task = player._empty_channel_task
+    await _wait_for_task(task)
+
+    assert not task.cancelled()
+    voice_client.disconnect.assert_awaited_once()
+    callback.assert_called_once_with(1)
+
+
+@pytest.mark.asyncio
+async def test_on_disconnect_called_even_if_disconnect_raises() -> None:
+    callback = MagicMock()
+    player = _make_player(on_disconnect=callback)
+    voice_client = _make_voice_client()
+    voice_client.disconnect = AsyncMock(side_effect=RuntimeError("boom"))
+    player._guild.voice_client = voice_client
+
+    await player.stop_and_disconnect()
+
+    callback.assert_called_once_with(1)
+    voice_client.disconnect.assert_any_await(force=True)
