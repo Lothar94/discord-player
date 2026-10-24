@@ -72,3 +72,14 @@ async def test_play_that_fails_to_resolve_leaves_idle_timer() -> None:
     player = cog._players[ctx.guild.id]
     assert player._idle_task is not None
     player._idle_task.cancel()
+
+
+@pytest.mark.asyncio
+async def test_stop_without_player_disconnects_voice_client() -> None:
+    cog = _make_cog()
+    ctx = _make_ctx()
+
+    await Music.stop.callback(cog, ctx)
+
+    ctx.guild.voice_client.disconnect.assert_awaited_once()
+

@@ -208,6 +208,8 @@ class Music(commands.Cog):
         if player is not None:
             await player.stop_and_disconnect()
             self._players.pop(ctx.guild.id, None)
+        elif ctx.guild.voice_client is not None:
+            await ctx.guild.voice_client.disconnect(force=False)
         await ctx.send("Stopped and disconnected.")
 
     # --- Error handling ---------------------------------------------------------
