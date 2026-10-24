@@ -6,6 +6,7 @@ import asyncio
 from typing import Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import discord
 import pytest
 
 from music.errors import TrackNotFoundError
@@ -289,3 +290,74 @@ async def test_skip_in_track_loop_moves_to_next_track() -> None:
     voice_client.stop.assert_called_once()
     assert player.queue.current.title == "b"
     assert player.queue.loop_mode is LoopMode.TRACK
+
+
+@pytest.mark.asyncio
+async def test_enqueue_while_paused_keeps_idle_timer() -> None:
+    player = _make_player(inactivity_timeout=300)
+    voice_client = _make_voice_client(playing=True)
+    player._guild.voice_client = voice_client
+
+    await player.pause()
+    voice_client.is_playing.return_value = False
+    voice_client.is_paused.return_value = True
+    await player.enqueue(_make_track())
+
+    assert player._idle_task is not None
+    assert not player._idle_task.cancelled()
+    voice_client.play.assert_not_called()
+    player._idle_task.cancel()
+
+
+@pytest.mark.asyncio
+async def test_voice_play_failure_restarts_idle_timer() -> None:
+    player = _make_player(inactivity_timeout=300)
+    voice_client = _make_voice_client()
+    voice_client.play.side_effect = discord.ClientException("Already playing audio.")
+    player._guild.voice_client = voice_client
+    player._source_factory.build_audio_source = AsyncMock(return_value=MagicMock())
+
+    with pytest.raises(discord.ClientException):
+        await player.enqueue(_make_track())
+
+    assert player._idle_task is not None
+    player._idle_task.cancel()
+
+
+@pytest.mark.asyncio
+async def test_source_factory_failure_restarts_idle_timer() -> None:
+    player = _make_player(inactivity_timeout=300)
+    player._guild.voice_client = _make_voice_client()
+    player._source_factory.build_audio_source = AsyncMock(side_effect=RuntimeError("boom"))
+
+    with pytest.raises(RuntimeError):
+        await player.enqueue(_make_track())
+
+    assert player._idle_task is not None
+    player._idle_task.cancel()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_enqueue_starts_playback_once() -> None:
+    player = _make_player(inactivity_timeout=300)
+    voice_client = _make_voice_client()
+    voice_client.play.side_effect = (
+        lambda *args, **kwargs: setattr(voice_client.is_playing, "return_value", True)
+    )
+    player._guild.voice_client = voice_client
+
+    async def _build(*args, **kwargs) -> MagicMock:
+        await asyncio.sleep(0)
+        return MagicMock()
+
+    player._source_factory.build_audio_source = AsyncMock(side_effect=_build)
+
+    await asyncio.gather(
+        player.enqueue(_make_track("a")),
+        player.enqueue(_make_track("b")),
+    )
+
+    voice_client.play.assert_called_once()
+    assert player.queue.current.title == "a"
+    assert [track.title for track in player.queue.upcoming] == ["b"]
+    assert player._idle_task is None

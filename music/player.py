@@ -74,11 +74,8 @@ class GuildPlayer:
         self._notify_channel = channel
 
     async def enqueue(self, track: TrackInfo) -> None:
-        async with self._lock:
-            self._queue.enqueue(track)
-        self._cancel_idle_timer()
-        if not self._is_playing_or_paused():
-            await self._play_next()
+        self._queue.enqueue(track)
+        await self._play_next()
 
     async def skip(self) -> None:
         voice = self._require_voice_client()
@@ -184,31 +181,39 @@ class GuildPlayer:
         return voice is not None and (voice.is_playing() or voice.is_paused())
 
     async def _play_next(self) -> None:
-        if self._disconnecting:
-            return
-        next_track = self._queue.advance()
-        if next_track is None:
-            self._restart_idle_timer()
-            return
+        # The lock serializes the "is anything playing?" check with voice.play.
+        async with self._lock:
+            if self._disconnecting or self._is_playing_or_paused():
+                return
+            try:
+                started = await self._start_next_track()
+            except Exception:
+                self._restart_idle_timer()
+                raise
+            if not started:
+                self._restart_idle_timer()
 
-        self._cancel_idle_timer()
-        voice = self.voice_client
-        if voice is None or not voice.is_connected():
-            logger.warning("Voice client gone while advancing queue in guild %s", self._guild.id)
-            return
+    async def _start_next_track(self) -> bool:
+        while (next_track := self._queue.advance()) is not None:
+            voice = self.voice_client
+            if voice is None or not voice.is_connected():
+                logger.warning("Voice client gone while advancing queue in guild %s", self._guild.id)
+                return False
 
-        try:
-            audio_source = await self._source_factory.build_audio_source(
-                next_track, volume=self._volume
-            )
-        except TrackNotFoundError as error:
-            self._queue.drop_current()
-            await self._notify(f"Skipping '{next_track.title}': {error}")
-            await self._play_next()
-            return
+            try:
+                audio_source = await self._source_factory.build_audio_source(
+                    next_track, volume=self._volume
+                )
+            except TrackNotFoundError as error:
+                self._queue.drop_current()
+                await self._notify(f"Skipping '{next_track.title}': {error}")
+                continue
 
-        voice.play(audio_source, after=self._on_playback_finished)
-        await self._notify_now_playing(next_track)
+            voice.play(audio_source, after=self._on_playback_finished)
+            self._cancel_idle_timer()
+            await self._notify_now_playing(next_track)
+            return True
+        return False
 
     def _on_playback_finished(self, error: Optional[Exception]) -> None:
         if error is not None:
