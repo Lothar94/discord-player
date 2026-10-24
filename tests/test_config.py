@@ -91,3 +91,35 @@ def test_inactivity_timeout_negative_raises(monkeypatch: pytest.MonkeyPatch) -> 
 
     with pytest.raises(MissingConfigError):
         load_config()
+
+
+def test_max_playlist_tracks_default_is_100(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DISCORD_TOKEN", "token")
+    monkeypatch.delenv("MAX_PLAYLIST_TRACKS", raising=False)
+    monkeypatch.setattr("config.load_dotenv", lambda *args, **kwargs: False)
+
+    config = load_config()
+
+    assert config.max_playlist_tracks == 100
+
+
+def test_max_playlist_tracks_read_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DISCORD_TOKEN", "token")
+    monkeypatch.setenv("MAX_PLAYLIST_TRACKS", "25")
+    monkeypatch.setattr("config.load_dotenv", lambda *args, **kwargs: False)
+
+    config = load_config()
+
+    assert config.max_playlist_tracks == 25
+
+
+@pytest.mark.parametrize("raw_value", ["many", "-5"])
+def test_invalid_max_playlist_tracks_raises(
+    monkeypatch: pytest.MonkeyPatch, raw_value: str
+) -> None:
+    monkeypatch.setenv("DISCORD_TOKEN", "token")
+    monkeypatch.setenv("MAX_PLAYLIST_TRACKS", raw_value)
+    monkeypatch.setattr("config.load_dotenv", lambda *args, **kwargs: False)
+
+    with pytest.raises(MissingConfigError):
+        load_config()

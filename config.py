@@ -27,6 +27,7 @@ class BotConfig:
     inactivity_timeout_seconds: int
     disconnect_when_alone: bool
     empty_channel_grace_seconds: int
+    max_playlist_tracks: int
 
 
 def load_config() -> BotConfig:
@@ -56,6 +57,9 @@ def load_config() -> BotConfig:
         ),
         empty_channel_grace_seconds=_parse_non_negative_int(
             os.getenv("EMPTY_CHANNEL_GRACE_SECONDS", "60"), "EMPTY_CHANNEL_GRACE_SECONDS"
+        ),
+        max_playlist_tracks=_parse_non_negative_int(
+            os.getenv("MAX_PLAYLIST_TRACKS", "100"), "MAX_PLAYLIST_TRACKS"
         ),
     )
 
