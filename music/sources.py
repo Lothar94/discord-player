@@ -40,7 +40,9 @@ _FFMPEG_OPTIONS = "-vn"
 
 _YOUTUBE_HOSTS = ("youtube.com", "youtu.be")
 _YOUTUBE_WATCH_URL = "https://www.youtube.com/watch?v={video_id}"
-_UNAVAILABLE_TITLES = frozenset({"[Private video]", "[Deleted video]"})
+_UNAVAILABLE_TITLES = frozenset(
+    {"[Private video]", "[Deleted video]", "[Unavailable video]"}
+)
 
 
 @dataclass(frozen=True)
