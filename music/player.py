@@ -77,6 +77,18 @@ class GuildPlayer:
         self._queue.enqueue(track)
         await self._play_next()
 
+    async def enqueue_many(self, tracks: list[TrackInfo]) -> None:
+        """Enqueue tracks in order, starting playback once if idle."""
+
+        if not tracks:
+            return
+        async with self._lock:
+            for track in tracks:
+                self._queue.enqueue(track)
+        self._cancel_idle_timer()
+        if not self._is_playing_or_paused():
+            await self._play_next()
+
     async def skip(self) -> None:
         voice = self._require_voice_client()
         if voice.is_playing() or voice.is_paused():
