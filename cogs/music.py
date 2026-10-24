@@ -19,7 +19,7 @@ from music.errors import (
 )
 from music.player import AutoDisconnectConfig, GuildPlayer
 from music.queue import LoopMode
-from music.sources import YTDLSourceFactory
+from music.sources import MAX_PLAYLIST_TRACKS, ResolvedQuery, YTDLSourceFactory
 from music.track import TrackInfo
 
 logger = logging.getLogger(__name__)
@@ -35,11 +35,12 @@ class Music(commands.Cog):
         bot: commands.Bot,
         default_volume: float,
         auto_disconnect: AutoDisconnectConfig,
+        source_factory: YTDLSourceFactory,
     ) -> None:
         self._bot = bot
         self._default_volume = default_volume
         self._auto_disconnect = auto_disconnect
-        self._source_factory = YTDLSourceFactory()
+        self._source_factory = source_factory
         self._players: Dict[int, GuildPlayer] = {}
 
     # --- Command implementations -------------------------------------------------
@@ -53,17 +54,17 @@ class Music(commands.Cog):
 
     @commands.command(name="play", aliases=["p"])
     async def play(self, ctx: commands.Context, *, query: str) -> None:
-        """Play a song by URL or YouTube search."""
+        """Play a song or playlist by URL, or a YouTube search."""
 
         await self._ensure_voice_connection(ctx)
         player = self._get_player(ctx.guild)
         player.set_notify_channel(ctx.channel)
 
         async with ctx.typing():
-            track = await self._source_factory.resolve(query, requester=ctx.author)
-            await player.enqueue(track)
+            resolved = await self._source_factory.resolve(query, requester=ctx.author)
+            await player.enqueue_many(resolved.tracks)
 
-        await ctx.send(self._format_enqueued(track, position=len(player.queue)))
+        await ctx.send(self._format_resolved(resolved, position=len(player.queue)))
 
     @commands.command(name="search")
     async def search(self, ctx: commands.Context, *, query: str) -> None:
@@ -288,6 +289,15 @@ class Music(commands.Cog):
             raise NotConnectedError("I'm not connected to a voice channel.")
         return player
 
+    @classmethod
+    def _format_resolved(cls, resolved: ResolvedQuery, position: int) -> str:
+        if len(resolved.tracks) == 1:
+            return cls._format_enqueued(resolved.tracks[0], position=position)
+        message = f"Enqueued **{len(resolved.tracks)}** tracks"
+        if resolved.playlist_title:
+            return f"{message} from playlist **{resolved.playlist_title}**."
+        return f"{message}."
+
     @staticmethod
     def _format_enqueued(track: TrackInfo, position: int) -> str:
         if position == 0:
@@ -306,5 +316,8 @@ async def setup(bot: commands.Bot) -> None:
             inactivity_timeout=getattr(bot, "inactivity_timeout_seconds", 300),
             disconnect_when_alone=getattr(bot, "disconnect_when_alone", True),
             empty_channel_grace=getattr(bot, "empty_channel_grace_seconds", 60),
+        ),
+        source_factory=YTDLSourceFactory(
+            max_playlist_tracks=getattr(bot, "max_playlist_tracks", MAX_PLAYLIST_TRACKS),
         ),
     ))
