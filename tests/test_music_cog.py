@@ -17,7 +17,12 @@ _BOT_USER_ID = 999
 def _make_cog() -> Music:
     bot = MagicMock()
     bot.user.id = _BOT_USER_ID
-    return Music(bot, default_volume=0.5, auto_disconnect=AutoDisconnectConfig())
+    return Music(
+        bot,
+        default_volume=0.5,
+        auto_disconnect=AutoDisconnectConfig(),
+        source_factory=MagicMock(),
+    )
 
 
 def _make_voice_client(channel: MagicMock) -> MagicMock:
