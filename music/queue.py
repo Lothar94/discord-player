@@ -24,6 +24,7 @@ class MusicQueue:
         self._tracks: Deque[TrackInfo] = deque()
         self._loop_mode: LoopMode = LoopMode.OFF
         self._current: Optional[TrackInfo] = None
+        self._skip_requested: bool = False
 
     @property
     def current(self) -> Optional[TrackInfo]:
@@ -53,7 +54,13 @@ class MusicQueue:
     def advance(self) -> Optional[TrackInfo]:
         """Pick the next track to play, honoring the active loop mode."""
 
-        if self._loop_mode is LoopMode.TRACK and self._current is not None:
+        skip_requested = self._skip_requested
+        self._skip_requested = False
+        if (
+            self._loop_mode is LoopMode.TRACK
+            and self._current is not None
+            and not skip_requested
+        ):
             return self._current
 
         if self._loop_mode is LoopMode.QUEUE and self._current is not None:
@@ -65,6 +72,16 @@ class MusicQueue:
 
         self._current = self._tracks.popleft()
         return self._current
+
+    def request_skip(self) -> None:
+        """Make the next advance move past the current track, even in TRACK loop."""
+
+        self._skip_requested = True
+
+    def drop_current(self) -> None:
+        """Forget the current track so it is neither repeated nor re-queued."""
+
+        self._current = None
 
     def clear(self) -> None:
         self._tracks.clear()
@@ -93,6 +110,7 @@ class MusicQueue:
     def reset(self) -> None:
         self._tracks.clear()
         self._current = None
+        self._skip_requested = False
         self._loop_mode = LoopMode.OFF
 
     def _validate_index(self, one_based_position: int) -> int:

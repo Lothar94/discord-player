@@ -83,7 +83,7 @@ Default prefix is `!`. Override with `COMMAND_PREFIX` in `.env`.
 
 | Command | Aliases | Description |
 |---|---|---|
-| `play <query>` | `p` | Play a URL or YouTube search |
+| `play <query>` | `p` | Play a URL, YouTube playlist (up to `MAX_PLAYLIST_TRACKS`, default 100) or YouTube search |
 | `search <text>` | | Force YouTube search |
 | `queue [page]` | `q` | Show the queue |
 | `nowplaying` | `np`, `current` | Show current song |
