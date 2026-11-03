@@ -1538,4 +1538,4 @@ secretstorage = ["secretstorage"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "6e124b655bfd979102b9dcf7e4409f70c3927614cb1c4511dc4b43fb2c146a15"
+content-hash = "3401f82eeeb57a6d9008ddf72b1d60bbd975e432b0e488873456325eccfbb835"

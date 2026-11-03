@@ -77,6 +77,13 @@ docker run --rm -v "$PWD":/app -w /app python:3.12-slim-bookworm \
 
 Commit `poetry.lock` so every build resolves identical versions.
 
+## Dependency updates
+
+Review and bump `yt-dlp` at least once a month: YouTube changes its extraction
+and old versions start failing with `DownloadError`, so it is the dependency
+that expires. Bump it in `pyproject.toml` and `requirements.txt`, then run
+`poetry lock` so all three stay consistent.
+
 ## Commands
 
 Default prefix is `!`. Override with `COMMAND_PREFIX` in `.env`.
